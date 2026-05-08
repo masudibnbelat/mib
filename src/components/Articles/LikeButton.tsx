@@ -1,0 +1,104 @@
+// src/components/Articles/LikeButton.tsx
+
+// src/components/Articles/LikeButton.tsx
+"use client";
+
+import { useCallback, useRef, useState } from "react";
+import { Heart } from "lucide-react";
+import { motion } from "motion/react";
+
+interface Props {
+  slug: string;
+  initialCount?: number;
+  variant?: "icon" | "button";
+}
+
+export default function LikeButton({
+  slug,
+  initialCount = 0,
+  variant = "icon",
+}: Props) {
+  const [count, setCount] = useState<number>(Number(initialCount) || 0);
+  const [animKey, setAnimKey] = useState(0);
+
+  const pendingRef = useRef(0);
+  const processingRef = useRef(false);
+
+  const flush = useCallback(async () => {
+    if (processingRef.current) return;
+    processingRef.current = true;
+
+    while (pendingRef.current > 0) {
+      pendingRef.current -= 1;
+
+      try {
+        const res = await fetch(
+          `/api/articles/${encodeURIComponent(slug)}/like`,
+          {
+            method: "POST",
+            cache: "no-store",
+          },
+        );
+
+        const data = await res.json();
+
+        if (res.ok && typeof data.likesCount === "number") {
+          setCount(data.likesCount);
+        } else {
+          setCount((c) => Math.max(0, c - 1));
+        }
+      } catch {
+        setCount((c) => Math.max(0, c - 1));
+      }
+    }
+
+    processingRef.current = false;
+  }, [slug]);
+
+  const handleClick = () => {
+    setCount((c) => c + 1);
+    setAnimKey((k) => k + 1);
+    pendingRef.current += 1;
+    void flush();
+  };
+
+  if (variant === "button") {
+    return (
+      <motion.button
+        whileTap={{ scale: 0.94 }}
+        onClick={handleClick}
+        className="flex items-center gap-2 px-5 py-2 rounded-full border border-(--color-active-border) text-(--color-gray) hover:border-rose-500/50 hover:text-rose-500 transition-all group"
+      >
+        <motion.span
+          key={animKey}
+          initial={{ scale: 1.35 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", stiffness: 420, damping: 14 }}
+        >
+          <Heart className="w-4 h-4 group-hover:scale-110 transition-transform" />
+        </motion.span>
+
+        <span className="text-sm bangla">পছন্দ করুন</span>
+        <span className="text-xs opacity-60">{count}</span>
+      </motion.button>
+    );
+  }
+
+  return (
+    <motion.button
+      whileTap={{ scale: 0.88 }}
+      onClick={handleClick}
+      className="flex items-center gap-1.5 text-sm text-(--color-gray) hover:text-rose-500 transition-colors"
+    >
+      <motion.span
+        key={animKey}
+        initial={{ scale: 1.45 }}
+        animate={{ scale: 1 }}
+        transition={{ type: "spring", stiffness: 420, damping: 14 }}
+      >
+        <Heart className="w-5 h-5" />
+      </motion.span>
+      <span>{count}</span>
+    </motion.button>
+  );
+}

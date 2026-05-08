@@ -1,0 +1,387 @@
+/* ThirdBrain.css */
+
+.tb-spinner {
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: tb-spin 0.55s linear infinite;
+  display: block;
+  flex-shrink: 0;
+}
+.tb-spinner-muted {
+  border-color: rgba(150, 150, 150, 0.3);
+  border-top-color: var(--color-gray, #888);
+}
+@keyframes tb-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.tb-py-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-text-hover);
+  opacity: 0.6;
+  animation: tb-pulse 1s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes tb-pulse {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.15);
+  }
+}
+
+.tb-editor {
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  caret-color: var(--color-text-hover);
+  tab-size: 2;
+  -webkit-font-smoothing: antialiased;
+  padding-left: clamp(16px, 6vw, 80px);
+  padding-right: clamp(16px, 6vw, 80px);
+}
+.tb-editor::placeholder {
+  color: var(--color-gray);
+  opacity: 0.45;
+}
+.tb-editor.prose {
+  font-family: Georgia, serif;
+  font-size: clamp(16px, 1.4vw, 20px);
+  line-height: 1.9;
+  letter-spacing: 0.01em;
+}
+.tb-editor.code {
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 13.5px;
+  line-height: 1.75;
+}
+
+.tb-pre {
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 12.5px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--color-text);
+}
+.tb-pre.success {
+  color: var(--code-text, var(--color-text));
+}
+.tb-pre.error {
+  color: #ef4444;
+}
+.tb-pre.loading {
+  color: var(--color-gray);
+  font-style: italic;
+}
+
+.tb-dots span {
+  animation: tb-blink 1.2s infinite;
+  animation-fill-mode: both;
+}
+.tb-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.tb-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes tb-blink {
+  0%,
+  80%,
+  100% {
+    opacity: 0.2;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+.tb-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  overflow: hidden;
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding-left: clamp(16px, 6vw, 80px);
+  padding-right: clamp(16px, 6vw, 80px);
+  border: none;
+  outline: none;
+  box-sizing: border-box;
+  z-index: 1;
+}
+.tb-overlay.code {
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 13.5px;
+  line-height: 1.75;
+}
+.tb-overlay.prose {
+  font-family: Georgia, serif;
+  font-size: clamp(16px, 1.4vw, 20px);
+  line-height: 1.9;
+  letter-spacing: 0.01em;
+}
+
+/* Syntax overlay: base = plain text color; Prism token spans override */
+.tb-syntax-overlay {
+  color: var(--syn-text);
+}
+
+.tb-error-underline {
+  text-decoration: underline;
+  text-decoration-style: wavy;
+  text-decoration-color: #ef4444;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 2px;
+}
+
+/* Textarea: hide text behind overlay, keep caret */
+.tb-textarea {
+  position: relative;
+  z-index: 2;
+  background: transparent !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  caret-color: var(--color-text-hover) !important;
+}
+/* Prose / plain-text mode: visible text */
+.tb-textarea.prose {
+  color: var(--color-text) !important;
+  -webkit-text-fill-color: var(--color-text) !important;
+}
+
+/* PRISM TOKEN RULES - variables only */
+.tb-syntax-overlay .token.comment,
+.tb-syntax-overlay .token.prolog,
+.tb-syntax-overlay .token.doctype,
+.tb-syntax-overlay .token.cdata {
+  color: var(--syn-comment);
+  font-style: italic;
+}
+
+.tb-syntax-overlay .token.punctuation {
+  color: var(--syn-punctuation);
+}
+
+.tb-syntax-overlay .token.property,
+.tb-syntax-overlay .token.tag,
+.tb-syntax-overlay .token.boolean,
+.tb-syntax-overlay .token.number,
+.tb-syntax-overlay .token.constant,
+.tb-syntax-overlay .token.symbol,
+.tb-syntax-overlay .token.deleted {
+  color: var(--syn-number);
+}
+
+.tb-syntax-overlay .token.selector,
+.tb-syntax-overlay .token.attr-name,
+.tb-syntax-overlay .token.string,
+.tb-syntax-overlay .token.char,
+.tb-syntax-overlay .token.builtin,
+.tb-syntax-overlay .token.inserted {
+  color: var(--syn-string);
+}
+
+.tb-syntax-overlay .token.operator,
+.tb-syntax-overlay .token.entity,
+.tb-syntax-overlay .token.url {
+  color: var(--syn-operator);
+}
+
+.tb-syntax-overlay .token.atrule,
+.tb-syntax-overlay .token.attr-value,
+.tb-syntax-overlay .token.keyword {
+  color: var(--syn-keyword);
+  font-style: italic;
+}
+
+.tb-syntax-overlay .token.function,
+.tb-syntax-overlay .token.class-name {
+  color: var(--syn-function);
+}
+
+.tb-syntax-overlay .token.regex,
+.tb-syntax-overlay .token.important,
+.tb-syntax-overlay .token.variable {
+  color: var(--syn-variable);
+}
+
+.tb-syntax-overlay .token.important,
+.tb-syntax-overlay .token.bold {
+  font-weight: bold;
+}
+
+.tb-syntax-overlay .token.italic {
+  font-style: italic;
+}
+.tb-syntax-overlay .token.entity {
+  cursor: help;
+}
+.tb-syntax-overlay .token.decorator {
+  color: var(--syn-decorator);
+}
+
+.tb-syntax-overlay .token.type-declaration,
+.tb-syntax-overlay .token.interface {
+  color: var(--syn-type);
+}
+
+/* Non-tokenized text: inherits --syn-text from .tb-syntax-overlay */
+.tb-syntax-overlay span:not([class]) {
+  color: var(--syn-text);
+}
+
+/* Rubik override for text mode (English / default) */
+.tb-editor.prose.rubik {
+  font-family: "Rubik", sans-serif;
+  font-optical-sizing: auto;
+  font-size: clamp(16px, 1.4vw, 20px);
+  letter-spacing: 0.01em;
+  transition:
+    font-family 0.15s ease,
+    font-size 0.15s ease,
+    line-height 0.15s ease;
+}
+
+/* DrawingCanvas styles — append to ThirdEye.css */
+
+/* Range input thumb styling */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-text-hover);
+  cursor: pointer;
+  border: 2px solid var(--color-bg);
+  box-shadow: 0 1px 4px var(--color-shadow);
+  transition: transform 0.15s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+input[type="range"]::-webkit-slider-thumb:active {
+  transform: scale(0.95);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-text-hover);
+  cursor: pointer;
+  border: 2px solid var(--color-bg);
+  box-shadow: 0 1px 4px var(--color-shadow);
+}
+
+/* Canvas container — ensure it fills in both modes */
+.drawing-canvas-root {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  touch-action: none;
+  overscroll-behavior: none;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+/* Prevent text selection on canvas UI */
+.drawing-canvas-root * {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* iOS safe area support for toolbar */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .draw-toolbar-mobile {
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Smooth transition for tool sheet backdrop */
+.draw-sheet-backdrop {
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+
+/* High-DPI canvas rendering */
+canvas {
+  image-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Dark mode overrides for canvas UI elements */
+[data-theme="dark"] .draw-color-swatch-white {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+}
+
+/* Prevent pull-to-refresh on mobile when drawing */
+@media (max-width: 767px) {
+  .drawing-canvas-root {
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: auto;
+  }
+}
+
+/* Landscape mobile — ensure full height */
+@media (max-height: 500px) and (orientation: landscape) {
+  .drawing-canvas-root {
+    height: 100vh;
+    height: 100dvh;
+  }
+}
+
+/* Append to ThirdEye.css */
+
+/* ── Drawing canvas range input ── */
+.draw-range-input {
+  -webkit-appearance: none;
+  appearance: none;
+}
+.draw-range-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-text-hover);
+  cursor: pointer;
+  border: 2px solid var(--color-bg);
+  box-shadow: 0 1px 4px var(--color-shadow);
+}
+.draw-range-input::-webkit-slider-thumb:active {
+  transform: scale(0.9);
+}
+.draw-range-input::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-text-hover);
+  cursor: pointer;
+  border: 2px solid var(--color-bg);
+}
+.draw-range-input::-moz-range-track {
+  height: 4px;
+  border-radius: 4px;
+  background: var(--color-active-border);
+}

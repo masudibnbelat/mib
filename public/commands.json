@@ -1,0 +1,44 @@
+{
+  "commands": [
+    {
+      "command": "whoami",
+      "result": "Masud ibn Belat\nMERN Stack / Full Stack Developer\nPassionate about building dynamic and scalable web applications"
+    },
+    {
+      "command": "cat skills/frontend.txt",
+      "result": "Frontend Technologies:\n├── CSS Frameworks\n│   ├── Bootstrap\n│   └── Tailwind CSS\n├── JavaScript Ecosystem\n│   ├── JavaScript (ES6+)\n│   ├── TypeScript\n│   └── React.js\n├── Animation\n│   └── Framer Motion\n└── Frameworks\n    └── Next.js"
+    },
+    {
+      "command": "cat skills/backend.txt",
+      "result": "Backend Technologies:\n├── Runtime & Frameworks\n│   ├── Node.js\n│   └── Express.js\n├── Databases\n│   └── MongoDB\n├── Authentication\n│   └── JWT (JSON Web Tokens)\n└── Cloud Services\n    └── Firebase"
+    },
+    {
+      "command": "ls -la tools/",
+      "result": "total 8\ndrwxr-xr-x  10 fenrir  staff   320 Nov  8 14:23 .\ndrwxr-xr-x   5 fenrir  staff   160 Nov  8 14:23 ..\n-rw-r--r--   1 fenrir  staff    64 Nov  8 14:23 git\n-rw-r--r--   1 fenrir  staff    64 Nov  8 14:23 github\n-rw-r--r--   1 fenrir  staff    64 Nov  8 14:23 npm\n-rw-r--r--   1 fenrir  staff    64 Nov  8 14:23 yarn\n-rw-r--r--   1 fenrir  staff    64 Nov  8 14:23 bun\n-rw-r--r--   1 fenrir  staff    64 Nov  8 14:23 vscode\n-rw-r--r--   1 fenrir  staff    64 Nov  8 14:23 zed\n-rw-r--r--   1 fenrir  staff    64 Nov  8 14:23 arch-linux"
+    },
+    {
+      "command": "npx create-next-app@latest my-app",
+      "result": "✔ Would you like to use TypeScript? … Yes\n✔ Would you like to use ESLint? … Yes\n✔ Would you like to use Tailwind CSS? … Yes\n✔ Would you like your code inside a `src/` directory? … Yes\n✔ Would you like to use App Router? (recommended) … Yes\n✔ Would you like to use Turbopack for `next dev`? … No\n✔ Would you like to customize the import alias (`@/*` by default)? … No\n\nCreating a new Next.js app in /home/fenrir/my-app...\n\n✓ Initializing project with template: default\n✓ Installing dependencies...\n\nSuccess! Created my-app at /home/fenrir/my-app"
+    },
+    {
+      "command": "npm create vite@latest vite-project",
+      "result": "✔ Select a framework: › React\n✔ Select a variant: › TypeScript\n\nScaffolding project in /home/fenrir/vite-project...\n\nDone. Now run:\n\n  cd vite-project\n  npm install\n  npm run dev"
+    },
+    {
+      "command": "npm i express cors dotenv mongoose",
+      "result": "added 57 packages, and audited 58 packages in 3s\n\n7 packages are looking for funding\n  run `npm fund` for details\n\nfound 0 vulnerabilities"
+    },
+    {
+      "command": "git status",
+      "result": "On branch main\nYour branch is up to date with 'origin/main'.\n\nChanges not staged for commit:\n  (use \"git add <file>...\" to update what will be committed)\n  (use \"git restore <file>...\" to discard changes in working directory)\n\tmodified:   src/components/Terminal.tsx\n\nno changes added to commit (use \"git add\" and/or \"git commit -a\")"
+    },
+    {
+      "command": "npm run dev",
+      "result": "  VITE v5.0.8  ready in 423 ms\n\n  ➜  Local:   http://localhost:5173/\n  ➜  Network: use --host to expose\n  ➜  press h + enter to show help"
+    },
+    {
+      "command": "cat about.txt",
+      "result": "Hi! I'm Fenrir Qutrub 👋\n\nI specialize in building modern web applications using the MERN stack.\nMy expertise spans across:\n\n• Frontend: React, Next.js, TypeScript, Tailwind CSS\n• Backend: Node.js, Express, MongoDB\n• Tools: Git, npm, Vite, VS Code\n\nCurrently exploring new technologies and always learning!"
+    }
+  ]
+}

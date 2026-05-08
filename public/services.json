@@ -1,0 +1,98 @@
+[
+  {
+    "name": "PSD to HTML",
+    "username": "@psdtohtml",
+    "body": "We convert your beautiful PSD designs into fully responsive, pixel-perfect HTML code. Our focus is on creating seamless, cross-browser compatible websites that deliver an excellent user experience across all devices.",
+    "img": "./Service/Adobe_Photoshop.svg"
+  },
+  {
+    "name": "Figma to HTML",
+    "username": "@figmatohtml",
+    "body": "We turn your Figma designs into clean, responsive HTML code. Our process ensures that your design translates flawlessly into a functional website that’s compatible with all browsers.",
+    "img": "./Service/figma.svg"
+  },
+  {
+    "name": "Thumbnail or Post Design",
+    "username": "@thumbnaildesign",
+    "body": "Custom thumbnail and post designs for social media, YouTube, and websites. We craft eye-catching designs that attract attention and increase engagement for your content.",
+    "img": "./Service/gimp.svg"
+  },
+  {
+    "name": "Website from Your Mind",
+    "username": "@websitefromyourmind",
+    "body": "Transform your ideas into stunning, fully-functional websites. We take your concepts and bring them to life with intuitive design and advanced web development techniques.",
+    "img": "./Service/wordpress.svg"
+  },
+  {
+    "name": "MERN Stack Developer",
+    "username": "@mernstackdev",
+    "body": "We specialize in the MERN stack (MongoDB, Express, React, Node.js) to build full-stack web applications. Whether you need a front-end, back-end, or complete web solution, we deliver powerful, scalable applications.",
+    "img": "./Service/react.svg"
+  },
+  {
+    "name": "Full Stack Developer",
+    "username": "@fullstackdev",
+    "body": "A full stack developer proficient in both front-end and back-end technologies. From designing sleek user interfaces to building scalable server-side logic, we cover all aspects of web development.",
+    "img": "./Service/node.svg"
+  },
+  {
+    "name": "XD to HTML Conversion",
+    "username": "@xdtohtml",
+    "body": "It's a process to convert your Figma files to HTML5 web pages as like PSD and Figma to html",
+    "img": "./Service/figma.svg"
+  },
+  {
+    "name": "Social Media Post Design",
+    "username": "@postdesign",
+    "body": "I can design eye catching social media post's for your social platforms like facebook, instagram, and linkedin to increase your online presence.",
+    "img": "./Service/gimp.svg"
+  },
+  {
+    "name": "PSD to HTML",
+    "username": "@psdtohtml",
+    "body": "We convert your beautiful PSD designs into fully responsive, pixel-perfect HTML code. Our focus is on creating seamless, cross-browser compatible websites that deliver an excellent user experience across all devices.",
+    "img": "./Service/Adobe_Photoshop.svg"
+  },
+  {
+    "name": "Figma to HTML",
+    "username": "@figmatohtml",
+    "body": "We turn your Figma designs into clean, responsive HTML code. Our process ensures that your design translates flawlessly into a functional website that’s compatible with all browsers.",
+    "img": "./Service/figma.svg"
+  },
+  {
+    "name": "Thumbnail or Post Design",
+    "username": "@thumbnaildesign",
+    "body": "Custom thumbnail and post designs for social media, YouTube, and websites. We craft eye-catching designs that attract attention and increase engagement for your content.",
+    "img": "./Service/gimp.svg"
+  },
+  {
+    "name": "Website from Your Mind",
+    "username": "@websitefromyourmind",
+    "body": "Transform your ideas into stunning, fully-functional websites. We take your concepts and bring them to life with intuitive design and advanced web development techniques.",
+    "img": "./Service/wordpress.svg"
+  },
+  {
+    "name": "MERN Stack Developer",
+    "username": "@mernstackdev",
+    "body": "We specialize in the MERN stack (MongoDB, Express, React, Node.js) to build full-stack web applications. Whether you need a front-end, back-end, or complete web solution, we deliver powerful, scalable applications.",
+    "img": "./Service/react.svg"
+  },
+  {
+    "name": "Full Stack Developer",
+    "username": "@fullstackdev",
+    "body": "A full stack developer proficient in both front-end and back-end technologies. From designing sleek user interfaces to building scalable server-side logic, we cover all aspects of web development.",
+    "img": "./Service/node.svg"
+  },
+  {
+    "name": "XD to HTML Conversion",
+    "username": "@xdtohtml",
+    "body": "It's a process to convert your Figma files to HTML5 web pages as like PSD and Figma to html",
+    "img": "./Service/figma.svg"
+  },
+  {
+    "name": "Social Media Post Design",
+    "username": "@postdesign",
+    "body": "I can design eye catching social media post's for your social platforms like facebook, instagram, and linkedin to increase your online presence.",
+    "img": "./Service/gimp.svg"
+  }
+]

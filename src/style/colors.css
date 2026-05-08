@@ -1,0 +1,37 @@
+/* src/styles/colors.css */
+
+/* 
+
+color variable 
+[use as like tailwind calss]
+
+ClassName=" text-(--color-text) hover:text-(--color-text-hover) bg-(--color-bg)"
+
+[always use as like this in tailwind class]
+
+
+// only for darkmode
+  darkMode: ["class", '[data-theme="dark"]'],
+  add this in tailwind.config.js
+
+*/
+
+/* ── Light (default) ── */
+:root {
+  --color-bg: #ffffff;
+  --color-text: #1f2125;
+  --color-gray: #9ca3af;
+  --color-active-border: rgba(15, 23, 42, 0.2);
+  --color-active-bg: rgba(15, 23, 42, 0.1);
+  --color-active-text: #13161c;
+}
+
+/* ── Dark ── */
+[data-theme="dark"] {
+  --color-bg: #1f2125;
+  --color-text: #ffffff;
+  --color-gray: #90a1b9;
+  --color-active-border: rgba(248, 249, 250, 0.2);
+  --color-active-bg: rgba(248, 249, 250, 0.1);
+  --color-active-text: #ffffff;
+}
