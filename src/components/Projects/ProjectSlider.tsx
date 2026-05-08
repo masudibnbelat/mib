@@ -54,7 +54,7 @@ const ProjectSlider = ({ title = "Projects" }: Props) => {
 
   return (
     <section className="container mx-auto w-full py-8">
-      <div className="mb-6 mx-8 flex items-center justify-between gap-4">
+      <div className="mb-6 flex items-center justify-between gap-4">
         {title && (
           <h2 className="text-3xl font-bold text-(--color-text)">{title}</h2>
         )}

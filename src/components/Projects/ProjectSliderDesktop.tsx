@@ -4,7 +4,14 @@ import { memo, useRef, useCallback, useState } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import type { Swiper as SwiperType } from "swiper";
 import { EffectCoverflow, Pagination, Autoplay } from "swiper/modules";
-import { ExternalLink, Globe, Smartphone, Pause, Play } from "lucide-react";
+import {
+  ExternalLink,
+  Globe,
+  Smartphone,
+  Pause,
+  Play,
+  Eye,
+} from "lucide-react";
 import { BsGithub } from "react-icons/bs";
 import type { Project } from "@/src/types/project";
 import Image from "next/image";
@@ -13,6 +20,7 @@ import "swiper/css";
 import "swiper/css/effect-coverflow";
 import "swiper/css/effect-cards";
 import "swiper/css/pagination";
+import Link from "next/link";
 
 interface Props {
   projects: Project[];
@@ -144,13 +152,9 @@ const ProjectSliderDesktop = ({ projects, onOpen }: Props) => {
 
             {/* Content */}
             <div className="space-y-2.5 p-4">
-              <h3 className="truncate text-sm font-semibold text-(--color-text)">
+              <h3 className="truncate text-sm lg:text-md font-semibold text-(--color-text)">
                 {project.title}
               </h3>
-
-              <p className="line-clamp-2 text-xs leading-relaxed text-(--color-gray)">
-                {project.description}
-              </p>
 
               {project.technologies?.length > 0 && (
                 <div className="flex flex-wrap gap-1">
@@ -170,13 +174,17 @@ const ProjectSliderDesktop = ({ projects, onOpen }: Props) => {
                 </div>
               )}
 
+              <p className="line-clamp-2 text-xs leading-relaxed text-(--color-gray)">
+                {project.description}
+              </p>
+
               {/* Links — stop propagation so click doesn't open modal */}
               <div
-                className="flex items-center gap-2 pt-1"
+                className="flex justify-around items-center gap-2 pt-1"
                 onClick={(e) => e.stopPropagation()}
               >
                 {project.githubLink && (
-                  <a
+                  <Link
                     href={project.githubLink}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -184,10 +192,11 @@ const ProjectSliderDesktop = ({ projects, onOpen }: Props) => {
                   >
                     <BsGithub className="h-3 w-3" />
                     GitHub
-                  </a>
+                  </Link>
                 )}
+
                 {project.liveLink && (
-                  <a
+                  <Link
                     href={project.liveLink}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -195,8 +204,17 @@ const ProjectSliderDesktop = ({ projects, onOpen }: Props) => {
                   >
                     <ExternalLink className="h-3 w-3" />
                     Live
-                  </a>
+                  </Link>
                 )}
+
+                <button
+                  type="button"
+                  onClick={() => handleSlideClick(project)}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-(--color-text) px-3 py-1.5 text-xs font-medium text-(--color-bg)"
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                  <span className="bangla">Details</span>
+                </button>
               </div>
             </div>
           </SwiperSlide>

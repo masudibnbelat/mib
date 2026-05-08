@@ -4,7 +4,14 @@ import { memo, useRef, useCallback, useState } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import type { Swiper as SwiperType } from "swiper";
 import { EffectCards, Autoplay } from "swiper/modules";
-import { ExternalLink, Globe, Smartphone, Pause, Play } from "lucide-react";
+import {
+  ExternalLink,
+  Globe,
+  Smartphone,
+  Pause,
+  Play,
+  Eye,
+} from "lucide-react";
 import { BsGithub } from "react-icons/bs";
 import type { Project } from "@/src/types/project";
 import Image from "next/image";
@@ -13,6 +20,7 @@ import "swiper/css";
 import "swiper/css/effect-coverflow";
 import "swiper/css/effect-cards";
 import "swiper/css/pagination";
+import Link from "next/link";
 
 interface Props {
   projects: Project[];
@@ -111,33 +119,19 @@ const ProjectSliderMobile = ({ projects, onOpen }: Props) => {
                   }`}
                 >
                   {project.type === "web" ? (
-                    <>
+                    <div>
                       <Globe className="h-2.5 w-2.5" /> Web
-                    </>
+                    </div>
                   ) : (
-                    <>
+                    <div>
                       <Smartphone className="h-2.5 w-2.5" /> App
-                    </>
+                    </div>
                   )}
                 </span>
 
                 {/* title over image */}
-                <p className="absolute bottom-2 left-3 right-3 truncate text-xs font-semibold text-white">
+                <p className="absolute bottom-2 left-3 right-3 truncate text-sm lg:text-md font-semibold text-white">
                   {project.title}
-                </p>
-
-                {/* hover hint */}
-                <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                  <span className="rounded-xl bg-white/20 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm">
-                    Tap for details
-                  </span>
-                </div>
-              </div>
-
-              {/* Content */}
-              <div className="space-y-2 p-3">
-                <p className="line-clamp-2 text-[11px] leading-relaxed text-(--color-gray)">
-                  {project.description}
                 </p>
 
                 {project.technologies?.length > 0 && (
@@ -158,13 +152,27 @@ const ProjectSliderMobile = ({ projects, onOpen }: Props) => {
                   </div>
                 )}
 
+                {/* hover hint */}
+                <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                  <span className="rounded-xl bg-white/20 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm">
+                    Tap for details
+                  </span>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="space-y-2 p-3">
+                <p className="line-clamp-2 text-[11px] leading-relaxed text-(--color-gray)">
+                  {project.description}
+                </p>
+
                 {/* Links */}
                 <div
                   className="flex items-center gap-1.5 pt-0.5"
                   onClick={(e) => e.stopPropagation()}
                 >
                   {project.githubLink && (
-                    <a
+                    <Link
                       href={project.githubLink}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -172,10 +180,10 @@ const ProjectSliderMobile = ({ projects, onOpen }: Props) => {
                     >
                       <BsGithub className="h-2.5 w-2.5" />
                       GitHub
-                    </a>
+                    </Link>
                   )}
                   {project.liveLink && (
-                    <a
+                    <Link
                       href={project.liveLink}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -183,8 +191,17 @@ const ProjectSliderMobile = ({ projects, onOpen }: Props) => {
                     >
                       <ExternalLink className="h-2.5 w-2.5" />
                       Live
-                    </a>
+                    </Link>
                   )}
+
+                  <button
+                    type="button"
+                    onClick={() => handleSlideClick(project)}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-(--color-text) px-3 py-1.5 text-xs font-medium text-(--color-bg)"
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    <span className="bangla">Details</span>
+                  </button>
                 </div>
               </div>
             </SwiperSlide>

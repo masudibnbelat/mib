@@ -12,6 +12,7 @@ import { CalendarDays, ExternalLink, Globe, Smartphone, X } from "lucide-react";
 import { BsGithub } from "react-icons/bs";
 import ImageCarousel from "@/src/ui/ImageCarousel";
 import type { Project } from "@/src/types/project";
+import Link from "next/link";
 
 interface Props {
   project: Project;
@@ -102,7 +103,7 @@ const ModalContent = ({
 
       <div className="flex flex-wrap gap-2 pt-1">
         {project.githubLink && (
-          <a
+          <Link
             href={project.githubLink}
             target="_blank"
             rel="noopener noreferrer"
@@ -110,11 +111,11 @@ const ModalContent = ({
           >
             <BsGithub className="h-4 w-4" />
             GitHub
-          </a>
+          </Link>
         )}
 
         {project.liveLink && (
-          <a
+          <Link
             href={project.liveLink}
             target="_blank"
             rel="noopener noreferrer"
@@ -122,7 +123,7 @@ const ModalContent = ({
           >
             <ExternalLink className="h-4 w-4" />
             <span className="bangla">Live Link</span>
-          </a>
+          </Link>
         )}
 
         <button

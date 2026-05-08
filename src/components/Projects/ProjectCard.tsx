@@ -7,6 +7,7 @@ import { Eye, ExternalLink, Globe, Smartphone } from "lucide-react";
 import { BsGithub } from "react-icons/bs";
 import ImageCarousel from "@/src/ui/ImageCarousel";
 import type { Props } from "@/src/types/project";
+import Link from "next/link";
 
 const ProjectCardComponent = ({ project, index, onOpen }: Props) => {
   const handleOpenModal = useCallback(() => {
@@ -106,7 +107,7 @@ const ProjectCardComponent = ({ project, index, onOpen }: Props) => {
 
         <div className="flex justify-around gap-2 pt-1">
           {project.githubLink && (
-            <a
+            <Link
               href={project.githubLink}
               target="_blank"
               rel="noopener noreferrer"
@@ -114,11 +115,11 @@ const ProjectCardComponent = ({ project, index, onOpen }: Props) => {
             >
               <BsGithub className="h-3.5 w-3.5" />
               <span>GitHub</span>
-            </a>
+            </Link>
           )}
 
           {project.liveLink && (
-            <a
+            <Link
               href={project.liveLink}
               target="_blank"
               rel="noopener noreferrer"
@@ -126,7 +127,7 @@ const ProjectCardComponent = ({ project, index, onOpen }: Props) => {
             >
               <ExternalLink className="h-3.5 w-3.5" />
               <span className="bangla">Live Link</span>
-            </a>
+            </Link>
           )}
 
           <button
