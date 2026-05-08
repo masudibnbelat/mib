@@ -164,7 +164,7 @@ const ProjectsBody = () => {
 
   return (
     <section className="mx-auto  px-4 py-8">
-      <div className="mb-6 flex gap-4 justify-between">
+      <div className="mb-6 flex flex-col lg:flex-row gap-4 justify-center lg:justify-between">
         <div>
           <h2 className="text-4xl lg:text-5xl font-bold text-(--color-text)">
             Projects

@@ -204,33 +204,47 @@ export default function AddProjectsPage() {
       onSubmit={handleSubmit(onSubmit)}
       className="space-y-6 max-w-2xl mx-auto p-4"
     >
-      {/* ── Type ── */}
+      {/* ── Type (Pills) ── */}
       <Field label="প্রজেক্ট ধরন" icon={<Globe className="w-3.5 h-3.5" />}>
-        <div className="flex gap-3">
-          {(["web", "app"] as const).map((t) => (
-            <motion.button
-              key={t}
-              type="button"
-              whileTap={{ scale: 0.97 }}
-              onClick={() => setValue("type", t)}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl
-                border text-sm font-medium transition-all duration-200
-                ${
-                  selectedType === t
-                    ? "bg-violet-600 border-violet-500 text-white shadow-lg shadow-violet-600/25"
-                    : "bg-(--color-active-bg) border-(--color-active-border) text-(--color-gray) hover:border-violet-500/50"
-                }`}
-            >
-              {t === "web" ? (
-                <Globe className="w-4 h-4" />
-              ) : (
-                <Smartphone className="w-4 h-4" />
-              )}
-              <span className="bangla">
-                {t === "web" ? "ওয়েব অ্যাপ" : "মোবাইল অ্যাপ"}
-              </span>
-            </motion.button>
-          ))}
+        <div className="flex p-1 rounded-2xl bg-(--color-active-bg) border border-(--color-active-border)">
+          {(["web", "app"] as const).map((t) => {
+            const isActive = selectedType === t;
+
+            return (
+              <motion.button
+                key={t}
+                type="button"
+                onClick={() => setValue("type", t)}
+                whileTap={{ scale: 0.95 }}
+                className="relative flex-1 py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+              >
+                {/* Active background pill */}
+                {isActive && (
+                  <motion.div
+                    layoutId="activeTypePill"
+                    className="absolute inset-0 rounded-xl bg-(--color-text) "
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  />
+                )}
+
+                {/* Content */}
+                <span
+                  className={`relative z-10 flex items-center gap-2 transition-colors ${
+                    isActive ? "text-(--color-bg)" : "text-(--color-gray)"
+                  }`}
+                >
+                  {t === "web" ? (
+                    <Globe className="w-4 h-4" />
+                  ) : (
+                    <Smartphone className="w-4 h-4" />
+                  )}
+                  <span className="bangla">
+                    {t === "web" ? "ওয়েব অ্যাপ" : "মোবাইল অ্যাপ"}
+                  </span>
+                </span>
+              </motion.button>
+            );
+          })}
         </div>
       </Field>
 

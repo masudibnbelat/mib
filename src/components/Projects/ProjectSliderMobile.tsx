@@ -119,12 +119,14 @@ const ProjectSliderMobile = ({ projects, onOpen }: Props) => {
                   }`}
                 >
                   {project.type === "web" ? (
-                    <div>
-                      <Globe className="h-2.5 w-2.5" /> Web
+                    <div className="flex items-center gap-x-1">
+                      <Globe className="h-2.5 w-2.5" />
+                      <span>Web</span>
                     </div>
                   ) : (
-                    <div>
-                      <Smartphone className="h-2.5 w-2.5" /> App
+                    <div className="flex items-center gap-x-1">
+                      <Smartphone className="h-2.5 w-2.5" />
+                      <span>App</span>
                     </div>
                   )}
                 </span>
