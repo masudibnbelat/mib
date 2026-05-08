@@ -4,7 +4,7 @@ import SocialMedia from "./SocialMedia";
 const Footer = () => {
   return (
     <footer className="mb-16 lg:my-5">
-      <div className="flex items-center justify-center lg:justify-between gap-5  border-t border-(--color-active-bg) py-5 px-6">
+      <div className="flex flex-col lg:flex-row items-center justify-center lg:justify-between gap-5  border-t border-(--color-active-bg) py-5 px-6">
         <SocialMedia />
 
         <p className="text-[0.8rem] sm:text-[0.9rem] text-gray-600 rubik-regular whitespace-nowrap">
