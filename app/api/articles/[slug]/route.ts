@@ -224,3 +224,28 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     );
   }
 }
+
+export async function DELETE(_req: NextRequest, { params }: Params) {
+  try {
+    const { slug } = await params;
+    await connectDB();
+
+    const article = await Article.findOne({ slug });
+    if (!article)
+      return NextResponse.json(
+        { success: false, message: "আর্টিকেল পাওয়া যায়নি" },
+        { status: 404 },
+      );
+
+    if (article.img) await deleteCloudinaryImage(article.img);
+    await article.deleteOne();
+
+    return NextResponse.json({ success: true, message: "আর্টিকেল মুছে গেছে" });
+  } catch (e) {
+    console.error("[DELETE /api/articles/[slug]]", e);
+    return NextResponse.json(
+      { success: false, message: "সার্ভার ত্রুটি" },
+      { status: 500 },
+    );
+  }
+}
