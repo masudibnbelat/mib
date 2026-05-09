@@ -27,7 +27,8 @@ export default async function ArticleDetails({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const raw = await getArticle(slug);
+  const decodedSlug = decodeURIComponent(slug);
+  const raw = await getArticle(decodedSlug);
 
   if (!raw) notFound();
 
@@ -51,7 +52,7 @@ export default async function ArticleDetails({
 
   return (
     <div className="min-h-screen bg-(--color-bg) mt-20">
-      <ViewTracker slug={slug} />
+      <ViewTracker slug={decodedSlug} />
 
       <div className="relative w-full h-[42vh] sm:h-[55vh]">
         {article.img ? (
@@ -111,7 +112,7 @@ export default async function ArticleDetails({
           </div>
         </div>
 
-        <article className="text-base sm:text-[17px] leading-loose text-(--color-text) bangla whitespace-pre-line">
+        <article className="text-sm lg:text-xl leading-loose text-(--color-text) bangla whitespace-pre-line">
           {article.description}
         </article>
 

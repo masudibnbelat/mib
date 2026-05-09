@@ -6,14 +6,14 @@ import { Article } from "@/src/models/Article";
 import { revalidateTag } from "next/cache";
 
 function makeSlug(title: string) {
-  return (
-    title
-      .replace(/\s+/g, "-")
-      .replace(/[^a-zA-Z0-9\u0980-\u09FF-]/g, "")
-      .slice(0, 60) +
-    "-" +
-    Date.now()
-  );
+  const ascii = title
+    .replace(/\s+/g, "-")
+    .replace(/[^a-zA-Z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 40);
+
+  return (ascii || "article") + "-" + Date.now();
 }
 
 export async function POST(req: NextRequest) {

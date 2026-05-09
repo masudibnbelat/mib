@@ -29,9 +29,13 @@ const DatenClock = () => {
 
   return (
     <div className="flex  items-center justify-center gap-x-2 text-(--color-gray)">
-      <p className="text-sm ">{formattedDate}</p>
+      <p className="text-sm " suppressHydrationWarning>
+        {formattedDate}
+      </p>
       <span className="w-px h-3 bg-(--color-active-border)" />
-      <h2 className="text-sm ">{formattedTime}</h2>
+      <h2 className="text-sm " suppressHydrationWarning>
+        {formattedTime}
+      </h2>
     </div>
   );
 };

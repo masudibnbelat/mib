@@ -1,15 +1,14 @@
-// app/dashboard/add-article/page.tsx
-
 "use client";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { BookOpen, FileText, Loader2, Send, Tag } from "lucide-react";
+import { BookOpen, FileText, Loader2, Send } from "lucide-react";
+import axios from "axios";
 import ImageUploadWithEditor, {
   EditedImage,
 } from "@/src/components/ImageEditor/ImageUploadWithEditor";
 import { axiosSecure } from "@/src/hooks/axiosSecure";
-import axios from "axios";
+import SelectInput from "@/src/components/common/SelectInput";
 
 const AddArticle = () => {
   const [title, setTitle] = useState("");
@@ -56,6 +55,8 @@ const AddArticle = () => {
   });
 
   const handleSubmit = async () => {
+    console.log("handleSubmit called", { topicId, title, images, description });
+
     if (!topicId) return toast.error("একটি topic নির্বাচন করুন");
     if (!title.trim()) return toast.error("শিরোনাম লিখুন");
     if (!images.length) return toast.error("একটি ছবি যোগ করুন");
@@ -64,7 +65,7 @@ const AddArticle = () => {
     const id = toast.loading("ছবি আপলোড হচ্ছে...");
     try {
       const imgUrl = await uploadMutation.mutateAsync(images[0].blob);
-      toast.loading("সেভ হচ্ছে...", { id });
+      console.log("imgUrl:", imgUrl);
       await articleMutation.mutateAsync({
         topic: topicId,
         title: title.trim(),
@@ -77,6 +78,7 @@ const AddArticle = () => {
       setTopicId("");
       setImages([]);
     } catch (err) {
+      console.error("handleSubmit error:", err);
       const msg = axios.isAxiosError(err)
         ? ((err.response?.data as { message?: string })?.message ?? err.message)
         : "কিছু একটা সমস্যা হয়েছে";
@@ -99,32 +101,14 @@ const AddArticle = () => {
       </div>
 
       {/* Topic */}
-      <div className="space-y-1.5">
-        <label className="flex items-center gap-1.5 text-sm font-medium text-(--color-text) bangla">
-          <Tag className="w-4 h-4 text-violet-400" />
-          বিষয় (Topic)
-        </label>
-        <div className="relative">
-          <select
-            value={topicId}
-            onChange={(e) => setTopicId(e.target.value)}
-            disabled={topicsLoading || submitting}
-            className={`${field} appearance-none cursor-pointer`}
-          >
-            <option value="">
-              {topicsLoading ? "লোড হচ্ছে..." : "— বিষয় নির্বাচন করুন —"}
-            </option>
-            {topics?.map((t) => (
-              <option key={t._id} value={t._id}>
-                {t.title}
-              </option>
-            ))}
-          </select>
-          {topicsLoading && (
-            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-violet-400 animate-spin" />
-          )}
-        </div>
-      </div>
+      <SelectInput
+        label="বিষয় (Topic)"
+        placeholder={topicsLoading ? "লোড হচ্ছে..." : "— বিষয় নির্বাচন করুন —"}
+        options={topics?.map((t) => ({ value: t._id, label: t.title })) ?? []}
+        value={topicId}
+        onChange={setTopicId}
+        disabled={topicsLoading || submitting}
+      />
 
       {/* Title */}
       <div className="space-y-1.5">
@@ -172,6 +156,7 @@ const AddArticle = () => {
       {/* Submit */}
       <button
         type="button"
+        onMouseDown={(e) => e.stopPropagation()}
         onClick={handleSubmit}
         disabled={submitting}
         className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold bangla transition-all active:scale-[.98] disabled:opacity-50 disabled:cursor-not-allowed"
