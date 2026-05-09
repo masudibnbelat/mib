@@ -3,6 +3,7 @@
 // src/models/Article.ts
 
 import { Schema, models, model } from "mongoose";
+import "./Topic";
 
 const articleSchema = new Schema(
   {

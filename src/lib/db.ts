@@ -2,14 +2,6 @@
 
 import mongoose from "mongoose";
 
-const uri = process.env.MONGODB_URI;
-
-if (!uri || !uri.startsWith("mongodb")) {
-  throw new Error("Invalid or missing MONGODB_URI in .env");
-}
-
-const MONGODB_URI: string = uri;
-
 interface MongooseCache {
   conn: typeof mongoose | null;
   promise: Promise<typeof mongoose> | null;
@@ -27,10 +19,17 @@ const cached: MongooseCache = globalWithMongoose.mongoose ?? {
 globalWithMongoose.mongoose = cached;
 
 export async function connectDB() {
+  // ✅ Check এখন function এর ভেতরে
+  const uri = process.env.MONGODB_URI;
+
+  if (!uri || !uri.startsWith("mongodb")) {
+    throw new Error("Invalid or missing MONGODB_URI in .env");
+  }
+
   if (cached.conn) return cached.conn;
 
   if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGODB_URI, {
+    cached.promise = mongoose.connect(uri, {
       bufferCommands: false,
       maxPoolSize: 10,
       minPoolSize: 1,
