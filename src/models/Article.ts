@@ -1,6 +1,5 @@
 // src/models/Article.ts
 
-// src/models/Article.ts
 
 import { Schema, models, model } from "mongoose";
 import "./Topic";

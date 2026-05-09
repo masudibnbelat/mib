@@ -28,7 +28,7 @@ ClassName=" text-(--color-text) hover:text-(--color-text-hover) bg-(--color-bg)"
 
 /* ── Dark ── */
 [data-theme="dark"] {
-  --color-bg: #1f2125;
+  --color-bg: #12161c;
   --color-text: #ffffff;
   --color-gray: #90a1b9;
   --color-active-border: rgba(248, 249, 250, 0.2);
