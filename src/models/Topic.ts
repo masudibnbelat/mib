@@ -1,5 +1,4 @@
 // src/models/Topic.ts
-// src/models/Topic.ts
 
 import {
   Schema,

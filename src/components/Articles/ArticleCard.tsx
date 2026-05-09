@@ -40,9 +40,7 @@ export default function ArticleCard({ article }: { article: ArticleData }) {
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
         />
         <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
-        <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-violet-600/90 text-white text-xs font-medium bangla backdrop-blur-sm">
-          {article.topic?.title}
-        </span>
+
         <div className="absolute bottom-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/50 backdrop-blur-sm text-white text-xs">
           <Clock3 className="w-3 h-3" />
           {readingTime} min read
