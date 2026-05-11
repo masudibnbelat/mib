@@ -72,14 +72,14 @@ const ProjectSlider = ({ title = "Projects" }: Props) => {
           No projects found.
         </p>
       ) : (
-        <>
+        <div>
           <div className="hidden sm:block">
             <ProjectSliderDesktop projects={projects} onOpen={handleOpen} />
           </div>
           <div className="block sm:hidden">
             <ProjectSliderMobile projects={projects} onOpen={handleOpen} />
           </div>
-        </>
+        </div>
       )}
 
       <AnimatePresence>
