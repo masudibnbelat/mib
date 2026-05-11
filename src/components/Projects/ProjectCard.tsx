@@ -43,8 +43,8 @@ const ProjectCardComponent = ({ project, index, onOpen }: Props) => {
         <div
           className={`absolute left-3 top-3 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium backdrop-blur-md ${
             project.type === "web"
-              ? "bg-violet-600/85 text-white"
-              : "bg-emerald-600/85 text-white"
+              ? "bg-(--color-text)/60 text-(--color-bg)"
+              : "bg-(--color-text)/60 text-(--color-bg)"
           }`}
         >
           {project.type === "web" ? (
@@ -62,7 +62,7 @@ const ProjectCardComponent = ({ project, index, onOpen }: Props) => {
       </div>
 
       <div className="space-y-3 p-4">
-        <h3 className="text-base font-semibold leading-snug text-(--color-text) transition-colors group-hover:text-violet-400">
+        <h3 className="text-lg lg:text-2xl font-semibold leading-snug text-(--color-text) transition-colors group-hover:text-violet-400">
           {project.title}
         </h3>
 
@@ -70,9 +70,9 @@ const ProjectCardComponent = ({ project, index, onOpen }: Props) => {
           <div>
             {shouldUseMarquee ? (
               <Marquee
-                direction="right"
+                direction="left"
                 speed={30}
-                pauseOnHover
+                pauseOnHover={false}
                 gradient={false}
               >
                 <div className="flex gap-1.5 pr-1.5">

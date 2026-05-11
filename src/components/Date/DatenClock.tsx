@@ -32,7 +32,7 @@ const DatenClock = () => {
       <p className="text-sm " suppressHydrationWarning>
         {formattedDate}
       </p>
-      <span className="w-px h-3 bg-(--color-active-border)" />
+      <span className="w-px h-3 bg-(--color-active-border) " />
       <h2 className="text-sm " suppressHydrationWarning>
         {formattedTime}
       </h2>

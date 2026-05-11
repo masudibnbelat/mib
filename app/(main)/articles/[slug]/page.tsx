@@ -116,12 +116,14 @@ export default async function ArticleDetails({
           {article.description}
         </article>
 
-        <div className="flex items-center justify-between pt-6 border-t border-(--color-active-border)">
-          <span className="flex items-center gap-1.5 text-sm text-(--color-gray)">
+        <div className="flex items-center justify-center lg:justify-between pt-6 border-t border-(--color-active-border)">
+          <span className="flex items-center  gap-1.5 text-sm text-(--color-gray)">
             <Clock className="w-4 h-4" />
             <span className="bangla">{timeAgo}</span>
           </span>
-          <DatenClock />
+          <div className="hidden lg:block">
+            <DatenClock />
+          </div>
         </div>
       </div>
     </div>
