@@ -5,6 +5,7 @@
 @variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 @import "../src/style/colors.css";
+
 @layer base {
   @import "../src/style/scrollbar.css";
 }
