@@ -13,8 +13,17 @@ export interface Project {
   slug: string;
 }
 
+export interface Meta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export interface ApiResponse {
+  success: boolean;
   data: Project[];
+  meta: Meta;
 }
 
 export interface Props {
