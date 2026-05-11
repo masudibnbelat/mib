@@ -8,18 +8,18 @@ import { BsGithub } from "react-icons/bs";
 const socials = [
   {
     name: "Facebook",
-    href: "https://facebook.com/",
+    href: "https://www.facebook.com/masudibnbelat",
     icon: FaFacebook,
   },
 
   {
     name: "Telegram",
-    href: "https://telegram.org/",
+    href: "https://t.me/mrprofessor666",
     icon: Send,
   },
   {
     name: "Github",
-    href: "https://github.com/",
+    href: "https://github.com/fenrirqutrub",
     icon: BsGithub,
   },
 ];

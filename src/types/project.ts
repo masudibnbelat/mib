@@ -2,15 +2,19 @@
 
 export interface Project {
   _id: string;
-  type: "web" | "app";
+  type: string;
   title: string;
-  slug: string;
   description: string;
   githubLink?: string;
   liveLink?: string;
   technologies: string[];
   images: string[];
   createdAt: string;
+  slug: string;
+}
+
+export interface ApiResponse {
+  data: Project[];
 }
 
 export interface Props {
@@ -20,14 +24,3 @@ export interface Props {
 }
 
 export type FilterType = "all" | "web" | "app";
-
-export interface ApiResponse {
-  success: boolean;
-  data: Project[];
-  meta: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
-}
