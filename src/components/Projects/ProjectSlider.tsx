@@ -10,6 +10,7 @@ import ProjectSliderDesktop from "./ProjectSliderDesktop";
 import ProjectSliderMobile from "./ProjectSliderMobile";
 import ProjectModal from "./ProjectModal";
 import Loader from "../common/Loader";
+import { motion } from "motion/react";
 
 const fetchProjects = async (filter: FilterType) => {
   const res = await axiosSecure.get<ApiResponse>("/api/projects", {
@@ -44,11 +45,16 @@ const ProjectSlider = () => {
 
   return (
     <section className="container mx-auto w-full py-8">
-      <div className="mb-6 flex flex-col lg:flex-row items-center justify-center lg:justify-between gap-4">
-        <h2 className="text-3xl lg:text-5xl font-bold text-(--color-text)">
+      <motion.div
+        className="flex items-center gap-3 my-0 md:my-12"
+        initial={{ opacity: 0, x: -50 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        <h2 className="text-3xl md:text-5xl rubik-bold ml-10 uppercase">
           Projects
         </h2>
-      </div>
+      </motion.div>
 
       {isLoading ? (
         <Loader />

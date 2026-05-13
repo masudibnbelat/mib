@@ -1,0 +1,27 @@
+/* src/style/font.css */
+
+.rubik {
+  font-family: "Rubik", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 500;
+  font-style: normal;
+}
+
+.rubik-bold {
+  font-family: "Rubik", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 900;
+  font-style: normal;
+}
+
+.pacifico {
+  font-family: "Pacifico", cursive;
+  font-weight: 500;
+  font-style: normal;
+}
+
+.pacifico-bold {
+  font-family: "Pacifico", cursive;
+  font-weight: 800;
+  font-style: normal;
+}

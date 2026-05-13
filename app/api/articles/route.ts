@@ -6,14 +6,16 @@ import { Article } from "@/src/models/Article";
 import { revalidateTag } from "next/cache";
 
 function makeSlug(title: string) {
-  const ascii = title
-    .replace(/\s+/g, "-")
-    .replace(/[^a-zA-Z0-9-]/g, "")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 40);
-
-  return (ascii || "article") + "-" + Date.now();
+  return (
+    title
+      .toLowerCase()
+      .trim()
+      .replace(/[\s_]+/g, "-")
+      .replace(/[^\w\u0980-\u09FF-]/g, "")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 80) || "article"
+  );
 }
 
 export async function POST(req: NextRequest) {
@@ -26,21 +28,32 @@ export async function POST(req: NextRequest) {
       );
 
     await connectDB();
+
+    const slug = makeSlug(title);
+
+    // ✅ Duplicate slug check
+    const existing = await Article.findOne({ slug }).lean();
+    if (existing) {
+      return NextResponse.json(
+        { success: false, message: "এই শিরোনামে আর্টিকেল আগেই আছে" },
+        { status: 409 },
+      );
+    }
+
     const article = await Article.create({
       topic,
       title,
-      slug: makeSlug(title),
+      slug,
       img,
       description,
     });
-
-    // Cache clear করে নতুন ডেটা আনবে
 
     revalidateTag("articles-list", "default");
     revalidateTag("topics-slider", "default");
 
     return NextResponse.json({ success: true, data: article }, { status: 201 });
-  } catch {
+  } catch (err) {
+    console.error("[POST /api/articles]", err);
     return NextResponse.json(
       { success: false, message: "Server error" },
       { status: 500 },

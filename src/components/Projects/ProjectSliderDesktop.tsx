@@ -3,7 +3,7 @@
 import { memo, useRef, useCallback, useState } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import type { Swiper as SwiperType } from "swiper";
-import { EffectCoverflow, Pagination, Autoplay } from "swiper/modules";
+import { EffectCoverflow, Autoplay } from "swiper/modules";
 import {
   ExternalLink,
   Globe,
@@ -93,7 +93,7 @@ const ProjectSliderDesktop = ({ projects, onOpen }: Props) => {
         autoplay={{ delay: 3000, disableOnInteraction: false }}
         pagination={{ clickable: true }}
         loop={true}
-        modules={[EffectCoverflow, Pagination, Autoplay]}
+        modules={[EffectCoverflow, Autoplay]}
         style={
           {
             paddingBottom: "2.5rem",

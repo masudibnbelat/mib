@@ -1,9 +1,11 @@
 /* globals.css */
 
+@import url("https://fonts.googleapis.com/css2?family=Pacifico&family=Rubik:ital,wght@0,300..900;1,300..900&display=swap");
+
 @import "tailwindcss";
 
 @variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
-
+@import "../src/style/font.css";
 @import "../src/style/colors.css";
 
 @layer base {

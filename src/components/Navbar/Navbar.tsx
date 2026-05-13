@@ -199,9 +199,9 @@ const Navbar: React.FC = () => {
               prefetch
               onClick={handleLogoClick}
               aria-label="Masud ibn Belat"
-              className="pacifico text-2xl leading-none text-(--color-text) transition-colors md:text-3xl"
+              className="pacifico text-2xl leading-none text-(--color-text) transition-colors md:text-3xl uppercase"
             >
-              Masud ibn Belat
+              Masud
             </Link>
 
             {/* Desktop Menu */}
