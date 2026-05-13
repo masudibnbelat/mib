@@ -1,7 +1,7 @@
 // ProjectSlider.tsx
 "use client";
 
-import { useCallback, useState, startTransition } from "react";
+import { useCallback, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence } from "motion/react";
 import type { FilterType, Project, ApiResponse } from "@/src/types/project";
@@ -9,7 +9,6 @@ import { axiosSecure } from "@/src/hooks/axiosSecure";
 import ProjectSliderDesktop from "./ProjectSliderDesktop";
 import ProjectSliderMobile from "./ProjectSliderMobile";
 import ProjectModal from "./ProjectModal";
-import ProjectFilter from "./ProjectFilter";
 import Loader from "../common/Loader";
 
 const fetchProjects = async (filter: FilterType) => {
@@ -22,12 +21,7 @@ const fetchProjects = async (filter: FilterType) => {
   return res.data.data ?? [];
 };
 
-interface Props {
-  title?: string;
-}
-
-const ProjectSlider = ({ title = "Projects" }: Props) => {
-  const [filter, setFilter] = useState<FilterType>("all");
+const ProjectSlider = () => {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
   const {
@@ -35,14 +29,10 @@ const ProjectSlider = ({ title = "Projects" }: Props) => {
     isLoading,
     isError,
   } = useQuery<Project[]>({
-    queryKey: ["projects-slider", filter],
-    queryFn: () => fetchProjects(filter),
+    queryKey: ["projects-slider"],
+    queryFn: () => fetchProjects("all"),
     staleTime: 1000 * 60 * 5,
   });
-
-  const handleFilterChange = useCallback((next: FilterType) => {
-    startTransition(() => setFilter(next));
-  }, []);
 
   const handleOpen = useCallback((project: Project) => {
     setSelectedProject(project);
@@ -55,10 +45,9 @@ const ProjectSlider = ({ title = "Projects" }: Props) => {
   return (
     <section className="container mx-auto w-full py-8">
       <div className="mb-6 flex flex-col lg:flex-row items-center justify-center lg:justify-between gap-4">
-        {title && (
-          <h2 className="text-3xl font-bold text-(--color-text)">{title}</h2>
-        )}
-        <ProjectFilter value={filter} onChange={handleFilterChange} />
+        <h2 className="text-3xl lg:text-5xl font-bold text-(--color-text)">
+          Projects
+        </h2>
       </div>
 
       {isLoading ? (
