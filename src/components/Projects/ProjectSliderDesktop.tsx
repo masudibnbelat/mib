@@ -92,6 +92,7 @@ const ProjectSliderDesktop = ({ projects, onOpen }: Props) => {
         }}
         autoplay={{ delay: 3000, disableOnInteraction: false }}
         pagination={{ clickable: true }}
+        loop={true}
         modules={[EffectCoverflow, Pagination, Autoplay]}
         style={
           {
