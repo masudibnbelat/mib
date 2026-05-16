@@ -187,11 +187,11 @@ const Navbar: React.FC = () => {
       <nav
         className={`fixed z-50 transition-all duration-300 ${
           scrolled
-            ? "top-2 left-2 right-2 rounded-2xl border border-(--color-active-border) bg-(--color-bg) py-3 backdrop-blur-xl"
-            : "top-0 left-0 right-0 py-4"
+            ? "top-2 container mx-auto px-2 lg:px-5 rounded-xl border border-(--color-active-border) bg-(--color-bg) py-3 backdrop-blur-xl"
+            : "top-0 left-0 right-0 py-4 px-2 lg:px-5"
         }`}
       >
-        <div className="mx-auto max-w-7xl px-4 md:px-0">
+        <div className="container mx-auto px-2 md:px-0">
           <div className="flex items-center justify-between">
             {/* Logo */}
             <Link
@@ -225,7 +225,7 @@ const Navbar: React.FC = () => {
                   ? "Switch to light theme"
                   : "Switch to dark theme"
               }
-              className="grid h-11 w-11 place-items-center rounded-2xl border border-(--color-active-border) bg-(--color-bg) text-(--color-text)"
+              className="grid h-11 w-11 place-items-center  bg-(--color-bg) text-(--color-text)"
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.92 }}
             >
