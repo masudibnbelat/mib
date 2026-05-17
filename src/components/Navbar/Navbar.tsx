@@ -31,8 +31,8 @@ type NavItemVariant = "desktop" | "mobile";
 
 const MENU_ITEMS: readonly MenuItem[] = [
   { name: "home", path: "/", icon: Home },
-  { name: "projects", path: "/projects", icon: FolderKanban },
   { name: "articles", path: "/articles", icon: Newspaper },
+  { name: "projects", path: "/projects", icon: FolderKanban },
   { name: "Third Eye", path: "/third-eye", icon: Eye },
 ] as const;
 
@@ -77,7 +77,7 @@ const NavItem = ({ item, isActive, variant }: NavItemProps) => {
           href={item.path}
           prefetch
           aria-current={isActive ? "page" : undefined}
-          className={`relative z-10 block rounded-lg px-5 py-2.5 font-medium capitalize transition-colors ${
+          className={`relative z-10 block rounded-lg px-5 py-2.5 font-medium rubik capitalize transition-colors ${
             isActive
               ? "text-(--color-active-text)"
               : "text-(--color-gray) hover:text-(--color-text)"
