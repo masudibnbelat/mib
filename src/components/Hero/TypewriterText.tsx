@@ -4,6 +4,7 @@ interface TypewriterTextProps {
   text: string;
   delay?: number;
   onComplete?: () => void;
+  onCharacter?: () => void;
   className?: string;
 }
 
@@ -11,6 +12,7 @@ export const TypewriterText: React.FC<TypewriterTextProps> = ({
   text,
   delay = 100,
   onComplete,
+  onCharacter,
   className = "",
 }) => {
   const [displayText, setDisplayText] = useState("");
@@ -27,12 +29,13 @@ export const TypewriterText: React.FC<TypewriterTextProps> = ({
       const timeout = setTimeout(() => {
         setDisplayText((prev) => prev + text[currentIndex]);
         setCurrentIndex((prev) => prev + 1);
+        onCharacter?.();
       }, delay);
       return () => clearTimeout(timeout);
-    } else if (currentIndex === text.length && onComplete) {
+    } else if (currentIndex === text.length && currentIndex > 0 && onComplete) {
       onComplete();
     }
-  }, [currentIndex, delay, text, onComplete]);
+  }, [currentIndex, delay, text, onComplete, onCharacter]);
 
   return <span className={className}>{displayText}</span>;
 };
