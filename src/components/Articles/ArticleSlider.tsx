@@ -1,7 +1,7 @@
 // src/components/Articles/ArticleSlider.tsx
 
 "use client";
-import { useRef, useEffect, useState } from "react";
+import { useRef, useState } from "react";
 import type { Swiper as SwiperType } from "swiper";
 import { Swiper, SwiperSlide } from "swiper/react";
 import Image from "next/image";
@@ -11,6 +11,7 @@ import "swiper/css";
 import "swiper/css/effect-fade";
 import { Autoplay, EffectFade } from "swiper/modules";
 import { axiosSecure } from "@/src/hooks/axiosSecure";
+import { useQuery } from "@tanstack/react-query";
 
 interface Topic {
   _id: string;
@@ -31,29 +32,23 @@ const padded = (n: number) => String(n).padStart(2, "0");
 /* ────────────────────────────────────────────────────────────── */
 
 const ArticleSlider = () => {
-  const [topics, setTopics] = useState<Topic[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const swiperRef = useRef<SwiperType | null>(null);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await axiosSecure.get<TopicResponse>("/api/topic");
-        if (res.data.success) setTopics(res.data.data ?? []);
-        else setError("ডেটা লোড করা যায়নি");
-      } catch {
-        setError("Server থেকে ডেটা আনতে সমস্যা হয়েছে");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["topics"],
+    queryFn: async () => {
+      const res = await axiosSecure.get<TopicResponse>("/api/topic");
+      if (!res.data.success) throw new Error("ডেটা লোড করা যায়নি");
+      return res.data.data ?? [];
+    },
+  });
+
+  const topics = data ?? [];
 
   /* ── loading ── */
-  if (loading) {
+  if (isLoading) {
     return (
       <section className="mt-14 w-full">
         <div className="flex aspect-16/7 w-full animate-pulse items-center justify-center rounded-3xl bg-(--color-active-bg) sm:aspect-16/6">
@@ -64,12 +59,12 @@ const ArticleSlider = () => {
   }
 
   /* ── error ── */
-  if (error) {
+  if (isError) {
     return (
       <section className="mt-14 w-full">
         <div className="flex aspect-16/7 w-full flex-col items-center justify-center gap-3 rounded-3xl border border-red-200 bg-red-50 dark:border-red-900/30 dark:bg-red-950/20">
           <TriangleAlert className="h-8 w-8 text-red-400" />
-          <p className="text-sm text-red-400">{error}</p>
+          <p className="text-sm text-red-400">{isError}</p>
         </div>
       </section>
     );

@@ -1,5 +1,3 @@
-// src/components/Articles/ArticleCard.tsx
-
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -15,13 +13,17 @@ import LikeButton from "./LikeButton";
 import ShareButton from "./ShareButton";
 import { ArticleData } from "@/src/types/article";
 
-export default function ArticleCard({ article }: { article: ArticleData }) {
+interface Props {
+  article: ArticleData;
+  onRefetch?: () => void;
+}
+
+export default function ArticleCard({ article }: Props) {
   const date = new Date(article.createdAt).toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",
     day: "numeric",
   });
-  console.log("ARTICLES LIST", article);
 
   const timeAgo = formatDistanceToNow(new Date(article.createdAt), {
     addSuffix: true,
@@ -30,7 +32,7 @@ export default function ArticleCard({ article }: { article: ArticleData }) {
   const readingTime = Math.ceil(article.description.split(" ").length / 200);
 
   return (
-    <div className="group relative flex flex-col rounded-lg overflow-hidden border border-(--color-active-border) bg-(--color-bg) hover:border-violet-500/40 hover:shadow-[0_8px_30px_rgba(109,40,217,0.1)]  transition-all duration-300">
+    <div className="group relative flex flex-col rounded-lg overflow-hidden border border-(--color-active-border) bg-(--color-bg) hover:border-violet-500/40 hover:shadow-[0_8px_30px_rgba(109,40,217,0.1)] transition-all duration-300">
       <div className="relative h-52 shrink-0 overflow-hidden">
         <Image
           src={article.img}
@@ -76,7 +78,7 @@ export default function ArticleCard({ article }: { article: ArticleData }) {
           <Link
             href={`/articles/${article.slug}`}
             prefetch
-            className="flex items-center gap-0.5 text-xs font-semibold  text-(--color-gray) hover:animate-pulse transition-colors"
+            className="flex items-center gap-0.5 text-xs font-semibold text-(--color-gray) hover:animate-pulse transition-colors"
           >
             Read More <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>

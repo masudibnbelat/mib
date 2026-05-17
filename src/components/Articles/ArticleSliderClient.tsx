@@ -52,7 +52,7 @@ export default function ArticleSliderClient({ topics }: Props) {
           fadeEffect={{ crossFade: true }}
           slidesPerView={1}
           loop
-          speed={800} // Smooth transition
+          speed={800}
           autoplay={{ delay: AUTOPLAY_DELAY, disableOnInteraction: false }}
           onSwiper={(s) => (swiperRef.current = s)}
           onSlideChange={(s) => {
@@ -64,7 +64,7 @@ export default function ArticleSliderClient({ topics }: Props) {
         >
           {topics.map((topic, i) => (
             <SwiperSlide key={topic._id}>
-              <div className="relative aspect-16/8 w-full sm:aspect-16/6 lg:aspect-12/4">
+              <div className="relative aspect-16/8 w-full lg:aspect-5/2">
                 <Image
                   src={topic.img}
                   alt={topic.title}

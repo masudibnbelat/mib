@@ -1,12 +1,13 @@
-// src/components/Articles/ArticlesFilterClient.tsx
 "use client";
 
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Inbox } from "lucide-react";
 import type { TopicData } from "@/src/types/Topic";
 import SelectInput from "../common/SelectInput";
 import ArticleCard from "./ArticleCard";
 import { ArticleData } from "@/src/types/article";
+import { axiosSecure } from "@/src/hooks/axiosSecure";
 
 interface ArticlesFilterClientProps {
   articles: ArticleData[];
@@ -16,10 +17,29 @@ interface ArticlesFilterClientProps {
 const ALL_TOPICS = "all-topics";
 
 const ArticlesFilterClient = ({
-  articles,
+  articles: initialArticles,
   topics,
 }: ArticlesFilterClientProps) => {
   const [selectedTopic, setSelectedTopic] = useState(ALL_TOPICS);
+
+  const { data: articles = initialArticles } = useQuery({
+    queryKey: ["articles"],
+    queryFn: async () => {
+      const res = await axiosSecure.get<{
+        success: boolean;
+        data: ArticleData[];
+      }>("/api/articles");
+
+      if (!res.data.success) {
+        throw new Error("Articles load failed");
+      }
+
+      return res.data.data;
+    },
+    initialData: initialArticles,
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+  });
 
   const topicOptions = useMemo(
     () => [
@@ -48,7 +68,7 @@ const ArticlesFilterClient = ({
           Articles
         </h2>
 
-        <span className=" inset-0 flex items-center justify-center  pointer-events-none select-none text-5xl lg:text-7xl font-bold opacity-5 text-(--color-text)">
+        <span className="inset-0 flex items-center justify-center pointer-events-none select-none text-5xl lg:text-7xl font-bold opacity-5 text-(--color-text)">
           {filteredArticles.length}
         </span>
 

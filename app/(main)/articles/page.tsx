@@ -1,9 +1,8 @@
 // app/articles/page.tsx
-// app/articles/page.tsx
 import { Suspense } from "react";
 import { connectDB } from "@/src/lib/db";
 import { Article } from "@/src/models/Article";
-import { unstable_cache } from "next/cache";
+import { Topic } from "@/src/models/Topic";
 
 import ArticleSliderClient from "@/src/components/Articles/ArticleSliderClient";
 import ArticlesFilterClient from "@/src/components/Articles/ArticlesFilterClient";
@@ -11,69 +10,52 @@ import ArticlesFilterClient from "@/src/components/Articles/ArticlesFilterClient
 import type { TopicData, TopicLean } from "@/src/types/Topic";
 import type { ArticleData, ArticleLean } from "@/src/types/article";
 import { Inbox } from "lucide-react";
-import { Topic } from "@/src/models/Topic";
 
-const isPopulatedTopic = (topic: ArticleLean["topic"]): topic is TopicLean => {
-  return (
-    typeof topic === "object" &&
-    topic !== null &&
-    "_id" in topic &&
-    "title" in topic
-  );
-};
+async function getTopics(): Promise<TopicData[]> {
+  await connectDB();
+  const raw = await Topic.find()
+    .sort({ createdAt: -1 })
+    .select("title img")
+    .lean<TopicLean[]>();
 
-const getTopics = unstable_cache(
-  async (): Promise<TopicData[]> => {
-    await connectDB();
+  return raw.map((t) => ({
+    _id: String(t._id),
+    title: t.title ?? "",
+    img: t.img ?? "",
+  }));
+}
 
-    const raw = await Topic.find()
-      .sort({ createdAt: -1 })
-      .select("title img")
-      .lean<TopicLean[]>();
+async function getArticles(): Promise<ArticleData[]> {
+  await connectDB();
+  const raw = await Article.find()
+    .populate("topic", "title img")
+    .sort({ createdAt: -1 })
+    .lean<ArticleLean[]>();
 
-    return raw.map((topic) => ({
-      _id: String(topic._id),
-      title: topic.title ?? "",
-      img: topic.img ?? "",
-    }));
-  },
-  ["topics-slider"],
-  { revalidate: 300, tags: ["topics"] },
-);
+  return raw.map((a) => {
+    const topic =
+      typeof a.topic === "object" && a.topic !== null && "title" in a.topic
+        ? a.topic
+        : null;
 
-const getArticles = unstable_cache(
-  async (): Promise<ArticleData[]> => {
-    await connectDB();
-
-    const raw = await Article.find()
-      .populate("topic", "title img")
-      .sort({ createdAt: -1 })
-      .lean<ArticleLean[]>();
-
-    return raw.map((a) => {
-      const topic = isPopulatedTopic(a.topic) ? a.topic : null;
-
-      return {
-        _id: String(a._id),
-        title: a.title ?? "",
-        slug: a.slug ?? "",
-        img: a.img ?? "",
-        description: a.description ?? "",
-        createdAt: a.createdAt ? String(a.createdAt) : "",
-        views: Number(a.views ?? 0),
-        likesCount: Number(a.likesCount ?? 0),
-        shares: Number(a.shares ?? 0),
-        topic: {
-          _id: String(topic?._id ?? ""),
-          title: topic?.title ?? "",
-          img: topic?.img ?? "",
-        },
-      };
-    });
-  },
-  ["articles-list"],
-  { revalidate: 60, tags: ["articles"] },
-);
+    return {
+      _id: String(a._id),
+      title: a.title ?? "",
+      slug: a.slug ?? "",
+      img: a.img ?? "",
+      description: a.description ?? "",
+      createdAt: a.createdAt ? String(a.createdAt) : "",
+      views: Number(a.views ?? 0),
+      likesCount: Number(a.likesCount ?? 0),
+      shares: Number(a.shares ?? 0),
+      topic: {
+        _id: String(topic?._id ?? ""),
+        title: topic?.title ?? "",
+        img: topic?.img ?? "",
+      },
+    };
+  });
+}
 
 /* ==================== Skeletons ==================== */
 function SliderSkeleton() {
@@ -107,7 +89,6 @@ function BodySkeleton() {
   );
 }
 
-/* ==================== Server Components ==================== */
 async function Slider() {
   const topics = await getTopics();
   return <ArticleSliderClient topics={topics} />;
@@ -130,14 +111,15 @@ async function Body() {
   return <ArticlesFilterClient articles={articles} topics={topics} />;
 }
 
-/* ==================== Main Page ==================== */
+// ★ এটাই মূল fix — প্রতিবার fresh data
+export const dynamic = "force-dynamic";
+
 export default function ArticlesPage() {
   return (
     <div>
       <Suspense fallback={<SliderSkeleton />}>
         <Slider />
       </Suspense>
-
       <Suspense fallback={<BodySkeleton />}>
         <Body />
       </Suspense>

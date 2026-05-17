@@ -1,29 +1,46 @@
-// src/components/Articles/ArticleBody.tsx
+"use client";
 
-import { connectDB } from "@/src/lib/db";
-import { Article } from "@/src/models/Article";
-import { unstable_cache } from "next/cache";
+import { useQuery } from "@tanstack/react-query";
+import { axiosSecure } from "@/src/hooks/axiosSecure";
 import ArticleCard from "./ArticleCard";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Loader2, TriangleAlert } from "lucide-react";
 import { ArticleData } from "@/src/types/article";
 
-const getCachedArticles = unstable_cache(
-  async (): Promise<ArticleData[]> => {
-    await connectDB();
-    const articles = await Article.find()
-      .populate("topic", "title img")
-      .sort({ createdAt: -1 })
-      .lean<ArticleData[]>();
+export default function ArticleBody() {
+  const {
+    data: articles = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
+    queryKey: ["articles"],
+    queryFn: async () => {
+      const res = await axiosSecure.get<{
+        success: boolean;
+        data: ArticleData[];
+      }>("/api/articles");
+      if (!res.data.success) throw new Error("লোড করা যায়নি");
+      return res.data.data;
+    },
+    staleTime: 60_000,
+  });
 
-    // lean object serializable করা
-    return JSON.parse(JSON.stringify(articles));
-  },
-  ["articles-list"],
-  { revalidate: 60, tags: ["articles"] },
-);
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-(--color-gray)" />
+      </div>
+    );
+  }
 
-export default async function ArticleBody() {
-  const articles = await getCachedArticles();
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-3">
+        <TriangleAlert className="w-10 h-10 text-red-400" />
+        <p className="text-sm text-red-400 bangla">আর্টিকেল লোড করা যায়নি</p>
+      </div>
+    );
+  }
 
   if (!articles.length) {
     return (
@@ -52,7 +69,11 @@ export default async function ArticleBody() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {articles.map((article) => (
-          <ArticleCard key={article._id} article={article} />
+          <ArticleCard
+            key={article._id}
+            article={article}
+            onRefetch={refetch}
+          />
         ))}
       </div>
     </div>
