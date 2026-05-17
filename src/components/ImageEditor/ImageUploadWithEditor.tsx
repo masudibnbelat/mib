@@ -95,7 +95,7 @@ const PreviewModal = ({
               bg-amber-500/20 border border-amber-500/40 hover:bg-amber-500/30
               text-amber-400 text-sm font-medium transition-all bangla"
           >
-            <Edit3 className="w-4 h-4" /> সম্পাদনা
+            <Edit3 className="w-4 h-4" /> Edit
           </motion.button>
           <motion.button
             type="button"
@@ -106,7 +106,7 @@ const PreviewModal = ({
               bg-emerald-500/20 border border-emerald-500/40 hover:bg-emerald-500/30
               text-emerald-400 text-sm font-semibold transition-all bangla"
           >
-            <Check className="w-4 h-4" /> নিশ্চিত করুন
+            <Check className="w-4 h-4" /> Confirm
           </motion.button>
         </div>
       </motion.div>

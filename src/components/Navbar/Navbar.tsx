@@ -185,13 +185,13 @@ const Navbar: React.FC = () => {
     <div>
       {/* Top Navbar */}
       <nav
-        className={`fixed z-50 transition-all duration-300 ${
+        className={`fixed z-50 transition-all duration-300    ${
           scrolled
-            ? "top-2 container mx-auto px-2 lg:px-5 rounded-xl border border-(--color-active-border) bg-(--color-bg) py-3 backdrop-blur-xl"
-            : "top-0 left-0 right-0 py-4 px-2 lg:px-5"
+            ? "top-2 container mx-auto  rounded-xl border border-(--color-active-border) transition-all duration-300   bg-(--color-bg) py-3 backdrop-blur-xl"
+            : "top-0 left-0 right-0 py-4 border border-(--color-active-border) transition-all duration-300  "
         }`}
       >
-        <div className="container mx-auto px-2 md:px-0">
+        <div className="container mx-auto px-5">
           <div className="flex items-center justify-between">
             {/* Logo */}
             <Link

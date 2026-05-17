@@ -28,7 +28,7 @@ export const HeroButton = () => {
       </Link>
 
       <motion.button
-        className="px-6 py-3 rounded bg-(--color-text) text-(--color-bg) font-medium transition-colors box-shadow font"
+        className="px-6 py-3 rounded bg-red-500 text-white font-medium transition-colors box-shadow font"
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
         onClick={scrollToContact}
