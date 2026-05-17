@@ -215,13 +215,13 @@ const Skills = () => {
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
-          className="flex items-center gap-3 my-0 md:my-12"
+          className="flex justify-center lg:justify-start items-center gap-3 my-0 md:my-12"
           initial={{ opacity: 0, x: -50 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-3xl md:text-5xl rubik-bold ml-10 uppercase">
-            Skills
+          <h2 className="text-3xl md:text-5xl  audiowide">
+            S<span className="text-red-500 mx-1.5">kill</span>s
           </h2>
         </motion.div>
 

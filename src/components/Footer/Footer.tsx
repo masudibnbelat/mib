@@ -3,7 +3,7 @@ import SocialMedia from "./SocialMedia";
 
 const Footer = () => {
   return (
-    <footer className="mb-16 lg:my-5">
+    <footer className="mb-16 lg:my-5" id="contact">
       <div className="flex flex-col lg:flex-row items-center justify-center lg:justify-between gap-5  border-t border-(--color-active-bg) py-5 px-6">
         <SocialMedia />
 

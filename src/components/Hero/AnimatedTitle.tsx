@@ -18,16 +18,14 @@ export const AnimatedTitle: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className={`flex items-center gap-2 ${
-          theme === "dark" ? "dark-text" : "light-text"
-        } `}
+        className="flex items-center gap-2 text-(--color-text) audiowide"
       >
         <Fan className="w-5 h-5 animate-spin" />
-        <span className="text-sm font-medium font">Full-Stack </span>
+        <span className="text-sm font-medium ">Full-Stack </span>
       </motion.div>
 
-      <div className={`text-4xl md:text-7xl font-bold  rubik-bold  `}>
-        WEB
+      <div className="text-[45px] lg:text-7xl font-bold audiowide">
+        Web
         <br />
         <AutoType />
       </div>

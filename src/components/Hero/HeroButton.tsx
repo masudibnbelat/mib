@@ -1,13 +1,12 @@
-import { useTheme } from "@/src/providers/ThemeProvider";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 export const HeroButton = () => {
-  const { theme } = useTheme();
-
   const scrollToContact = () => {
-    document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" });
+    document.getElementById("contact")?.scrollIntoView({
+      behavior: "smooth",
+    });
   };
 
   return (
@@ -19,11 +18,7 @@ export const HeroButton = () => {
     >
       <Link href="/" target="_blank">
         <motion.button
-          className={`group px-6 py-3 rounded ${
-            theme === "dark"
-              ? "bg-[#171B1F] text-[#F8F9FA] border border-[#F8F9FA]"
-              : "bg-[#F8F9FA] text-[#171B1F] border border-[#171B1F]"
-          } font-medium flex items-center gap-2 transition-shadow font`}
+          className="group px-6 py-3 rounded bg-(--color-bg) text-(--color-text) border border-(--color-text) font-medium flex items-center gap-2 transition-shadow font"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
@@ -33,11 +28,7 @@ export const HeroButton = () => {
       </Link>
 
       <motion.button
-        className={`px-6 py-3 rounded ${
-          theme === "dark"
-            ? "bg-[#F8F9FA] text-[#171B1F]"
-            : "bg-[#171B1F] text-[#F8F9FA]"
-        }  font-medium transition-colors box-shadow font`}
+        className="px-6 py-3 rounded bg-(--color-text) text-(--color-bg) font-medium transition-colors box-shadow font"
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
         onClick={scrollToContact}

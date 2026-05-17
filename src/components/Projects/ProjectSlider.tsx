@@ -44,15 +44,16 @@ const ProjectSlider = () => {
   }, []);
 
   return (
-    <section className="container mx-auto w-full py-8">
+    <section className=" w-full py-8">
       <motion.div
-        className="flex items-center gap-3 my-0 md:my-12"
+        className="flex justify-center lg:justify-start items-center gap-3 my-0 md:my-12"
         initial={{ opacity: 0, x: -50 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.6 }}
       >
-        <h2 className="text-3xl md:text-5xl rubik-bold ml-10 uppercase">
-          Projects
+        <h2 className="text-3xl md:text-5xl audiowide lg:ml-8">
+          <span className="text-red-500 mr-1.5">Pro</span>
+          jects
         </h2>
       </motion.div>
 
