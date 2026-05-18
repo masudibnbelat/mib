@@ -9,6 +9,7 @@ import ImageUploadWithEditor, {
 } from "@/src/components/ImageEditor/ImageUploadWithEditor";
 import { axiosSecure } from "@/src/hooks/axiosSecure";
 import SelectInput from "@/src/components/common/SelectInput";
+import MibEditor from "@/src/components/MibEditor/MibEditor";
 
 const AddArticle = () => {
   const [title, setTitle] = useState("");
@@ -143,13 +144,12 @@ const AddArticle = () => {
         <label className="text-sm font-medium text-(--color-text) bangla block">
           বিবরণ
         </label>
-        <textarea
+
+        <MibEditor
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          onChange={setDescription}
           disabled={submitting}
           rows={6}
-          placeholder="বিস্তারিত বিবরণ লিখুন..."
-          className={`${field} resize-none`}
         />
       </div>
 
