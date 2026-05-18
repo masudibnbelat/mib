@@ -227,7 +227,7 @@ const Terminal: React.FC = () => {
                   <span className={styles.result}>~</span>
 
                   {state === "typing-command" ? (
-                    <>
+                    <div>
                       <TypewriterText
                         text={currentCommand.command}
                         delay={CONFIG.COMMAND_DELAY}
@@ -243,7 +243,7 @@ const Terminal: React.FC = () => {
                         }}
                         className={`inline-block w-2 h-5 ml-1 ${styles.cursor}`}
                       />
-                    </>
+                    </div>
                   ) : (
                     <span className={styles.prompt}>
                       {currentCommand.command}
@@ -260,7 +260,7 @@ const Terminal: React.FC = () => {
                     className={`${styles.result} whitespace-pre-wrap pl-6 leading-relaxed`}
                   >
                     {state === "typing-result" ? (
-                      <>
+                      <div>
                         <TypewriterText
                           text={currentCommand.result}
                           delay={CONFIG.RESULT_DELAY}
@@ -276,7 +276,7 @@ const Terminal: React.FC = () => {
                           }}
                           className={`inline-block w-2 h-5 ml-1 ${styles.cursor}`}
                         />
-                      </>
+                      </div>
                     ) : (
                       currentCommand.result
                     )}

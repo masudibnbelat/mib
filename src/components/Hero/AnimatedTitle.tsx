@@ -24,7 +24,7 @@ export const AnimatedTitle: React.FC = () => {
         <span className="text-sm font-medium ">Full-Stack </span>
       </motion.div>
 
-      <div className="text-[45px] lg:text-7xl font-bold audiowide">
+      <div className="text-[42px] lg:text-7xl font-bold audiowide">
         Web
         <br />
         <AutoType />

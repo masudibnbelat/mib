@@ -1,21 +1,39 @@
+// AddArticle.tsx with React Hook Form
 "use client";
-import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { BookOpen, FileText, Loader2, Send } from "lucide-react";
 import axios from "axios";
+import { useState } from "react";
 import ImageUploadWithEditor, {
   EditedImage,
 } from "@/src/components/ImageEditor/ImageUploadWithEditor";
 import { axiosSecure } from "@/src/hooks/axiosSecure";
 import SelectInput from "@/src/components/common/SelectInput";
-import MibEditor from "@/src/components/MibEditor/MibEditor";
+import { MibEditorField } from "@/src/components/MibEditor/MibEditorField";
+
+// Define your form shape
+interface ArticleFormData {
+  topicId: string;
+  title: string;
+  description: string;
+}
 
 const AddArticle = () => {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [topicId, setTopicId] = useState("");
   const [images, setImages] = useState<EditedImage[]>([]);
+
+  // Setup React Hook Form
+  const { control, handleSubmit, reset, watch } = useForm<ArticleFormData>({
+    defaultValues: {
+      topicId: "",
+      title: "",
+      description: "",
+    },
+  });
+
+  // Watch topicId for SelectInput (since SelectInput isn't a controlled RHF component)
+  const topicId = watch("topicId");
 
   const { data: topics, isLoading: topicsLoading } = useQuery({
     queryKey: ["topics"],
@@ -55,31 +73,23 @@ const AddArticle = () => {
     }) => axiosSecure.post("/api/articles", payload),
   });
 
-  const handleSubmit = async () => {
-    console.log("handleSubmit called", { topicId, title, images, description });
-
-    if (!topicId) return toast.error("একটি topic নির্বাচন করুন");
-    if (!title.trim()) return toast.error("শিরোনাম লিখুন");
+  const onSubmit = async (data: ArticleFormData) => {
+    if (!data.topicId) return toast.error("একটি topic নির্বাচন করুন");
     if (!images.length) return toast.error("একটি ছবি যোগ করুন");
-    if (!description.trim()) return toast.error("বিবরণ লিখুন");
 
     const id = toast.loading("ছবি আপলোড হচ্ছে...");
     try {
       const imgUrl = await uploadMutation.mutateAsync(images[0].blob);
-      console.log("imgUrl:", imgUrl);
       await articleMutation.mutateAsync({
-        topic: topicId,
-        title: title.trim(),
+        topic: data.topicId,
+        title: data.title.trim(),
         img: imgUrl,
-        description: description.trim(),
+        description: data.description.trim(),
       });
       toast.success("আর্টিকেল পোস্ট হয়েছে!", { id });
-      setTitle("");
-      setDescription("");
-      setTopicId("");
+      reset();
       setImages([]);
     } catch (err) {
-      console.error("handleSubmit error:", err);
       const msg = axios.isAxiosError(err)
         ? ((err.response?.data as { message?: string })?.message ?? err.message)
         : "কিছু একটা সমস্যা হয়েছে";
@@ -89,11 +99,14 @@ const AddArticle = () => {
 
   const submitting = uploadMutation.isPending || articleMutation.isPending;
 
-  const field =
+  const fieldClass =
     "w-full px-3 py-2.5 rounded-xl bg-(--color-active-bg) border border-(--color-active-border) text-(--color-text) text-sm bangla placeholder:text-(--color-gray) focus:outline-none focus:ring-2 focus:ring-violet-500/40 disabled:opacity-50";
 
   return (
-    <div className="max-w-2xl mx-auto p-4 space-y-6">
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="max-w-2xl mx-auto p-4 space-y-6"
+    >
       <div className="flex items-center gap-2">
         <BookOpen className="w-5 h-5 text-violet-500" />
         <h2 className="text-lg font-semibold text-(--color-text) bangla">
@@ -101,17 +114,23 @@ const AddArticle = () => {
         </h2>
       </div>
 
-      {/* Topic */}
+      {/* Topic - using controller */}
       <SelectInput
         label="বিষয় (Topic)"
         placeholder={topicsLoading ? "লোড হচ্ছে..." : "— বিষয় নির্বাচন করুন —"}
         options={topics?.map((t) => ({ value: t._id, label: t.title })) ?? []}
         value={topicId}
-        onChange={setTopicId}
+        onChange={(val) => {
+          // Manually set the RHF value
+          control._formValues.topicId = val;
+          control._subjects.values.next({
+            values: { ...control._formValues, topicId: val },
+          } as never);
+        }}
         disabled={topicsLoading || submitting}
       />
 
-      {/* Title */}
+      {/* Title - using controller */}
       <div className="space-y-1.5">
         <label className="flex items-center gap-1.5 text-sm font-medium text-(--color-text) bangla">
           <FileText className="w-4 h-4 text-violet-400" />
@@ -119,11 +138,12 @@ const AddArticle = () => {
         </label>
         <input
           type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          {...control.register("title", {
+            required: "শিরোনাম লিখুন",
+          })}
           disabled={submitting}
           placeholder="আর্টিকেলের শিরোনাম লিখুন..."
-          className={field}
+          className={fieldClass}
         />
       </div>
 
@@ -139,27 +159,25 @@ const AddArticle = () => {
         />
       </div>
 
-      {/* Description */}
+      {/* Description - MibEditorField with RHF */}
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-(--color-text) bangla block">
           বিবরণ
         </label>
-
-        <MibEditor
-          value={description}
-          onChange={setDescription}
-          disabled={submitting}
+        <MibEditorField<ArticleFormData>
+          name="description"
+          control={control}
+          placeholder="বিস্তারিত বিবরণ লিখুন..."
           rows={6}
+          disabled={submitting}
         />
       </div>
 
       {/* Submit */}
       <button
-        type="button"
-        onMouseDown={(e) => e.stopPropagation()}
-        onClick={handleSubmit}
+        type="submit"
         disabled={submitting}
-        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold bangla transition-all active:scale-[.98] disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold bangla transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {submitting ? (
           <>
@@ -173,7 +191,7 @@ const AddArticle = () => {
           </>
         )}
       </button>
-    </div>
+    </form>
   );
 };
 
