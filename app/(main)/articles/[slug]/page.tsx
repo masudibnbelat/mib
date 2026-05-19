@@ -1,23 +1,22 @@
-// app/articles/[slug]/page.tsx
-
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import { Calendar, Clock, Clock3, Eye, Folder } from "lucide-react";
+import { Calendar, Clock3, Eye, Folder } from "lucide-react";
 import { connectDB } from "@/src/lib/db";
 import { Article } from "@/src/models/Article";
-import { formatDistanceToNow } from "date-fns";
+
 import LikeButton from "@/src/components/Articles/LikeButton";
 import ShareButton from "@/src/components/Articles/ShareButton";
 import ViewTracker from "@/src/components/Articles/ViewTracker";
 import BackButton from "@/src/components/Articles/BackButton";
 import DatenClock from "@/src/components/Date/DatenClock";
 import "@/src/models/Topic";
+import { ArticleContent } from "@/src/providers/ArticleContent";
+import TimeAgo from "@/src/components/common/TimeAgo";
 
 export const dynamic = "force-dynamic";
 
 async function getArticle(slug: string) {
   await connectDB();
-
   return Article.findOne({ slug }).populate("topic", "title img").lean();
 }
 
@@ -38,9 +37,6 @@ export default async function ArticleDetails({
     "en-US",
     { year: "numeric", month: "long", day: "numeric" },
   );
-  const timeAgo = formatDistanceToNow(new Date(article.createdAt), {
-    addSuffix: true,
-  });
 
   const readingTime = Math.ceil(
     (article.description ?? "").split(" ").length / 200,
@@ -90,7 +86,6 @@ export default async function ArticleDetails({
               <Calendar className="w-4 h-4 text-(--color-gray)" />
               <span className="bangla">{formattedDate}</span>
             </span>
-
             <span className="flex items-center gap-1.5">
               <Clock3 className="w-4 h-4 text-(--color-gray)" />
               <span className="bangla">{readingTime} min read</span>
@@ -103,7 +98,6 @@ export default async function ArticleDetails({
               <Eye className="w-4 h-4" />
               <span>{viewsCount}</span>
             </span>
-
             <ShareButton
               slug={article.slug}
               title={article.title}
@@ -112,15 +106,20 @@ export default async function ArticleDetails({
           </div>
         </div>
 
-        <article className="text-sm lg:text-xl leading-loose text-(--color-text) bangla whitespace-pre-line">
-          {article.description}
+        {/* ★ এখানেই change — আগে plain text ছিল, এখন styled render */}
+        <article className="bangla">
+          <ArticleContent
+            content={article.description}
+            className="text-sm lg:text-base"
+          />
         </article>
 
         <div className="flex items-center justify-between pt-6 border-t border-(--color-active-border)">
-          <span className="flex justify-between items-center  gap-1.5 text-sm text-(--color-gray)">
-            <Clock className="w-4 h-4" />
-            <span className="bangla">{timeAgo}</span>
-          </span>
+          <TimeAgo
+            date={article.createdAt}
+            className="text-(--color-gray) bangla"
+            showIcon={true}
+          />
           <span className="text-sm text-(--color-gray) block lg:hidden">
             Thanks for reading...
           </span>

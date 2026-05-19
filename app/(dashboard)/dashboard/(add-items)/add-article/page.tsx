@@ -1,4 +1,3 @@
-// AddArticle.tsx with React Hook Form
 "use client";
 import { useForm } from "react-hook-form";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -13,7 +12,6 @@ import { axiosSecure } from "@/src/hooks/axiosSecure";
 import SelectInput from "@/src/components/common/SelectInput";
 import { MibEditorField } from "@/src/components/MibEditor/MibEditorField";
 
-// Define your form shape
 interface ArticleFormData {
   topicId: string;
   title: string;
@@ -23,16 +21,16 @@ interface ArticleFormData {
 const AddArticle = () => {
   const [images, setImages] = useState<EditedImage[]>([]);
 
-  // Setup React Hook Form
-  const { control, handleSubmit, reset, watch } = useForm<ArticleFormData>({
-    defaultValues: {
-      topicId: "",
-      title: "",
-      description: "",
-    },
-  });
+  const { control, register, setValue, handleSubmit, reset, watch } =
+    useForm<ArticleFormData>({
+      defaultValues: {
+        topicId: "",
+        title: "",
+        description: "",
+      },
+    });
 
-  // Watch topicId for SelectInput (since SelectInput isn't a controlled RHF component)
+  // eslint-disable-next-line react-hooks/incompatible-library
   const topicId = watch("topicId");
 
   const { data: topics, isLoading: topicsLoading } = useQuery({
@@ -114,23 +112,21 @@ const AddArticle = () => {
         </h2>
       </div>
 
-      {/* Topic - using controller */}
       <SelectInput
         label="বিষয় (Topic)"
         placeholder={topicsLoading ? "লোড হচ্ছে..." : "— বিষয় নির্বাচন করুন —"}
         options={topics?.map((t) => ({ value: t._id, label: t.title })) ?? []}
         value={topicId}
         onChange={(val) => {
-          // Manually set the RHF value
-          control._formValues.topicId = val;
-          control._subjects.values.next({
-            values: { ...control._formValues, topicId: val },
-          } as never);
+          setValue("topicId", val, {
+            shouldDirty: true,
+            shouldTouch: true,
+            shouldValidate: true,
+          });
         }}
         disabled={topicsLoading || submitting}
       />
 
-      {/* Title - using controller */}
       <div className="space-y-1.5">
         <label className="flex items-center gap-1.5 text-sm font-medium text-(--color-text) bangla">
           <FileText className="w-4 h-4 text-violet-400" />
@@ -138,7 +134,7 @@ const AddArticle = () => {
         </label>
         <input
           type="text"
-          {...control.register("title", {
+          {...register("title", {
             required: "শিরোনাম লিখুন",
           })}
           disabled={submitting}
@@ -147,7 +143,6 @@ const AddArticle = () => {
         />
       </div>
 
-      {/* Image */}
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-(--color-text) bangla block">
           ছবি
@@ -159,7 +154,6 @@ const AddArticle = () => {
         />
       </div>
 
-      {/* Description - MibEditorField with RHF */}
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-(--color-text) bangla block">
           বিবরণ
@@ -173,7 +167,6 @@ const AddArticle = () => {
         />
       </div>
 
-      {/* Submit */}
       <button
         type="submit"
         disabled={submitting}

@@ -2,16 +2,15 @@
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
-import { Palette, ChevronDown } from "lucide-react";
-import type { ColorPickerProps } from "../../types/editor";
+import { MessageSquareQuote, ChevronDown } from "lucide-react";
+import type { QuotePickerProps, QuoteStyle } from "../../types/editor";
 
-export function ColorPicker({ colors, onSelect, disabled }: ColorPickerProps) {
+export function QuotePicker({ quotes, onSelect, disabled }: QuotePickerProps) {
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ top: 0, left: 0 });
 
-  // Position dropdown below button
   useEffect(() => {
     if (!open || !btnRef.current) return;
     const rect = btnRef.current.getBoundingClientRect();
@@ -21,7 +20,6 @@ export function ColorPicker({ colors, onSelect, disabled }: ColorPickerProps) {
     });
   }, [open]);
 
-  // Close on outside click
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
@@ -57,7 +55,7 @@ export function ColorPicker({ colors, onSelect, disabled }: ColorPickerProps) {
             : "text-zinc-400 hover:text-violet-400 hover:bg-violet-500/10"
         }`}
       >
-        <Palette className="w-3.5 h-3.5" />
+        <MessageSquareQuote className="w-3.5 h-3.5" />
         <ChevronDown
           className={`w-2.5 h-2.5 transition-transform duration-150 ${open ? "rotate-180" : ""}`}
         />
@@ -78,24 +76,38 @@ export function ColorPicker({ colors, onSelect, disabled }: ColorPickerProps) {
                 left: pos.left,
                 zIndex: 99999,
               }}
-              className="grid grid-cols-6 gap-1.5 p-2.5 rounded-xl bg-zinc-900 border border-zinc-700/60 shadow-2xl"
+              className="w-48 p-1.5 rounded-xl bg-zinc-900 border border-zinc-700/60 shadow-2xl"
             >
-              {colors.map((c) => (
+              {quotes.map((q: QuoteStyle) => (
                 <motion.button
-                  key={c.key}
+                  key={q.key}
                   type="button"
-                  whileHover={{ scale: 1.25 }}
-                  whileTap={{ scale: 0.9 }}
-                  title={c.label}
+                  whileTap={{ scale: 0.95 }}
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    onSelect(c.marker);
+                    onSelect(q);
                     setOpen(false);
                   }}
-                  className="w-5 h-5 rounded-full border-2 border-transparent hover:border-white/40 transition-all ring-1 ring-white/10"
-                  style={{ backgroundColor: c.hex }}
-                />
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-zinc-800/70 transition-colors"
+                >
+                  <div
+                    className="w-3 h-3 rounded-sm shrink-0"
+                    style={{ backgroundColor: q.borderColor }}
+                  />
+                  <span
+                    className="text-xs font-medium"
+                    style={{ color: q.titleColor }}
+                  >
+                    {q.label}
+                  </span>
+                  <span
+                    className="text-[10px] ml-auto"
+                    style={{ color: q.textColor, opacity: 0.6 }}
+                  >
+                    বিবরণ
+                  </span>
+                </motion.button>
               ))}
             </motion.div>
           </AnimatePresence>,

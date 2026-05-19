@@ -15,6 +15,15 @@ export interface ColorOption {
   key: string;
 }
 
+export interface QuoteStyle {
+  key: string;
+  label: string;
+  titleColor: string; // deep color
+  borderColor: string;
+  bgColor: string; // thin/light bg
+  textColor: string;
+}
+
 export interface CheatItem {
   sym: string;
   desc: string;
@@ -34,13 +43,10 @@ export interface ColorPickerProps {
   disabled?: boolean;
 }
 
-export interface ToolbarProps {
-  onWrap: (before: string, after: string, fallback?: string) => void;
-  onPrefixLines: (prefix: string) => void;
-  onInsertBlock: (text: string) => void;
-  onClose: () => void;
-  disabled: boolean;
-  colors: ColorOption[];
+export interface QuotePickerProps {
+  quotes: QuoteStyle[];
+  onSelect: (style: QuoteStyle) => void;
+  disabled?: boolean;
 }
 
 export interface EditorAreaProps {

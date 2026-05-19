@@ -1,17 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
-import {
-  ArrowUpRight,
-  Calendar,
-  Clock,
-  Clock3,
-  Eye,
-  Folder,
-} from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { ArrowUpRight, Calendar, Clock3, Eye, Folder } from "lucide-react";
+import { useMemo } from "react";
+
 import LikeButton from "./LikeButton";
 import ShareButton from "./ShareButton";
 import { ArticleData } from "@/src/types/article";
+import { renderToHtml } from "@/src/Utility/editor-renderer";
+import TimeAgo from "../common/TimeAgo";
 
 interface Props {
   article: ArticleData;
@@ -25,11 +21,14 @@ export default function ArticleCard({ article }: Props) {
     day: "numeric",
   });
 
-  const timeAgo = formatDistanceToNow(new Date(article.createdAt), {
-    addSuffix: true,
-  });
-
+  // Raw text for reading time (strip markdown markers)
   const readingTime = Math.ceil(article.description.split(" ").length / 200);
+
+  // Rendered HTML for display
+  const descHtml = useMemo(
+    () => renderToHtml(article.description),
+    [article.description],
+  );
 
   return (
     <div className="group relative flex flex-col rounded-lg overflow-hidden border border-(--color-active-border) bg-(--color-bg) hover:border-violet-500/40 hover:shadow-[0_8px_30px_rgba(109,40,217,0.1)] transition-all duration-300">
@@ -66,15 +65,19 @@ export default function ArticleCard({ article }: Props) {
           </span>
         </div>
 
-        <p className="text-sm text-(--color-gray) bangla line-clamp-3 leading-relaxed flex-1">
-          {article.description}
-        </p>
+        {/* Rendered markdown description — clipped to 3 lines (72px) */}
+        <div
+          className="text-sm text-(--color-gray) bangla flex-1 leading-6 overflow-hidden"
+          style={{ maxHeight: "72px" }}
+          dangerouslySetInnerHTML={{ __html: descHtml }}
+        />
 
         <div className="flex justify-between">
-          <div className="flex items-center gap-1.5 text-sm text-(--color-gray)">
-            <Clock className="w-4 h-4" />
-            <span>{timeAgo}</span>
-          </div>
+          <TimeAgo
+            date={article.createdAt}
+            className="text-(--color-gray)"
+            showIcon={true}
+          />
           <Link
             href={`/articles/${article.slug}`}
             prefetch
@@ -89,12 +92,10 @@ export default function ArticleCard({ article }: Props) {
             slug={article.slug}
             initialCount={Number(article.likesCount ?? 0)}
           />
-
           <div className="flex items-center gap-1.5 text-sm text-(--color-gray)">
             <Eye className="w-5 h-5" />
             <span>{Number(article.views ?? 0)}</span>
           </div>
-
           <ShareButton
             slug={article.slug}
             title={article.title}

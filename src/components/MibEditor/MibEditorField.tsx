@@ -1,9 +1,10 @@
 // components/editor/MibEditorField.tsx
+
 "use client";
 import { useController, Control, FieldValues, Path } from "react-hook-form";
 import MibEditor from "./MibEditor";
 
-interface MibEditorFieldProps<T extends FieldValues> {
+interface Props<T extends FieldValues> {
   name: Path<T>;
   control: Control<T>;
   placeholder?: string;
@@ -19,7 +20,7 @@ export function MibEditorField<T extends FieldValues>({
   rows,
   disabled,
   className,
-}: MibEditorFieldProps<T>) {
+}: Props<T>) {
   const {
     field: { value, onChange },
     fieldState: { error },

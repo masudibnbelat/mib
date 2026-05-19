@@ -1,5 +1,5 @@
-// hooks/useEditorActions.ts
 import { useCallback } from "react";
+import { QuoteStyle } from "../types/editor";
 
 interface UseEditorActionsProps {
   value: string;
@@ -12,138 +12,203 @@ export function useEditorActions({
   onChange,
   textareaRef,
 }: UseEditorActionsProps) {
-  /**
-   * Wrap the current selection (or insert fallback) with before/after strings.
-   */
+  const getEl = () => textareaRef.current;
+
+  const performAction = (action: (el: HTMLTextAreaElement) => void) => {
+    const el = getEl();
+    if (!el) return;
+    el.focus();
+    const scrollTop = el.scrollTop;
+    action(el);
+    requestAnimationFrame(() => {
+      el.scrollTop = scrollTop;
+    });
+  };
+
+  // FIX: Multi-line wrap — applies style to EACH selected line
   const wrap = useCallback(
     (before: string, after: string, fallback = "") => {
-      const el = textareaRef.current;
-      if (!el) return;
-      const s = el.selectionStart;
-      const e = el.selectionEnd;
-      const sel = value.slice(s, e) || fallback;
-      const next = value.slice(0, s) + before + sel + after + value.slice(e);
-      onChange(next);
-      requestAnimationFrame(() => {
-        el.focus();
-        el.setSelectionRange(s + before.length, s + before.length + sel.length);
+      performAction((el) => {
+        const s = el.selectionStart;
+        const e = el.selectionEnd;
+        const sel = value.slice(s, e);
+
+        // No selection — insert with fallback
+        if (!sel) {
+          const next =
+            value.slice(0, s) + before + fallback + after + value.slice(e);
+          onChange(next);
+          requestAnimationFrame(() => {
+            el.setSelectionRange(
+              s + before.length,
+              s + before.length + fallback.length,
+            );
+          });
+          return;
+        }
+
+        // Has selection — wrap each line individually
+        const lines = sel.split("\n");
+        const wrappedLines = lines.map((line) => {
+          // Skip empty lines
+          if (!line.trim()) return line;
+
+          // Check if already wrapped — toggle off
+          if (line.startsWith(before) && line.endsWith(after)) {
+            return line.slice(before.length, line.length - after.length);
+          }
+
+          return before + line + after;
+        });
+
+        const result = wrappedLines.join("\n");
+        const next = value.slice(0, s) + result + value.slice(e);
+        onChange(next);
+        requestAnimationFrame(() => {
+          el.setSelectionRange(s, s + result.length);
+        });
       });
     },
-    [value, onChange, textareaRef],
+    [value, onChange],
   );
 
-  /**
-   * Toggle a line prefix on every selected line.
-   * If ALL selected lines already have the prefix, remove it. Otherwise add it.
-   * For ordered lists (prefix "1. "), auto-numbers sequentially.
-   */
+  // FIX: Multi-line prefix — already works per-line, but verify
   const prefixLines = useCallback(
     (prefix: string) => {
-      const el = textareaRef.current;
-      if (!el) return;
+      performAction((el) => {
+        const s = el.selectionStart;
+        const e = el.selectionEnd;
+        const lineStart = value.lastIndexOf("\n", s - 1) + 1;
+        let lineEnd = value.indexOf("\n", e);
+        if (lineEnd === -1) lineEnd = value.length;
+        const block = value.slice(lineStart, lineEnd);
+        const lines = block.split("\n");
+        const isOL = prefix === "1. ";
 
-      const s = el.selectionStart;
-      const e = el.selectionEnd;
+        const allHave = lines.every((l) =>
+          isOL ? /^\d+\. /.test(l) : l.startsWith(prefix),
+        );
 
-      // Find the start of the first selected line
-      const lineStart = value.lastIndexOf("\n", s - 1) + 1;
-      // Find the end of the last selected line
-      let lineEnd = value.indexOf("\n", e);
-      if (lineEnd === -1) lineEnd = value.length;
+        const newLines = allHave
+          ? lines.map((l) =>
+              isOL ? l.replace(/^\d+\. /, "") : l.slice(prefix.length),
+            )
+          : lines.map((l, i) =>
+              isOL
+                ? `${i + 1}. ${l.replace(/^\d+\. /, "")}`
+                : l.startsWith(prefix)
+                  ? l
+                  : prefix + l,
+            );
 
-      const block = value.slice(lineStart, lineEnd);
-      const lines = block.split("\n");
-
-      const isOrderedList = prefix === "1. ";
-
-      // Check if all lines already have the prefix (for toggling off)
-      const allHave = lines.every((l) => {
-        if (isOrderedList) return /^\d+\. /.test(l);
-        return l.startsWith(prefix);
-      });
-
-      let newLines: string[];
-      if (allHave) {
-        // Remove prefix
-        newLines = lines.map((l) => {
-          if (isOrderedList) return l.replace(/^\d+\. /, "");
-          return l.startsWith(prefix) ? l.slice(prefix.length) : l;
+        const newBlock = newLines.join("\n");
+        onChange(value.slice(0, lineStart) + newBlock + value.slice(lineEnd));
+        requestAnimationFrame(() => {
+          el.setSelectionRange(lineStart, lineStart + newBlock.length);
         });
-      } else {
-        // Add prefix
-        newLines = lines.map((l, idx) => {
-          if (isOrderedList) {
-            // Remove existing number prefix if any
-            const cleaned = l.replace(/^\d+\. /, "");
-            return `${idx + 1}. ${cleaned}`;
-          }
-          return l.startsWith(prefix) ? l : prefix + l;
-        });
-      }
-
-      const newBlock = newLines.join("\n");
-      const next = value.slice(0, lineStart) + newBlock + value.slice(lineEnd);
-      onChange(next);
-
-      requestAnimationFrame(() => {
-        el.focus();
-        const newEnd = lineStart + newBlock.length;
-        el.setSelectionRange(lineStart, newEnd);
       });
     },
-    [value, onChange, textareaRef],
+    [value, onChange],
   );
 
-  /**
-   * Insert a block (like code fence or hr).
-   * If text is selected and it's a code block insertion, wrap the selection.
-   */
   const insertBlock = useCallback(
     (text: string) => {
-      const el = textareaRef.current;
-      if (!el) return;
+      performAction((el) => {
+        const s = el.selectionStart;
+        const e = el.selectionEnd;
+        const sel = value.slice(s, e);
+        const before = value.slice(0, s);
+        const after = value.slice(e);
+        const pre = before.length > 0 && !before.endsWith("\n") ? "\n" : "";
+        const suf = after.length > 0 && !after.startsWith("\n") ? "\n" : "";
 
-      const s = el.selectionStart;
-      const e = el.selectionEnd;
-      const sel = value.slice(s, e);
-      const before = value.slice(0, s);
-      const after = value.slice(e);
+        if (text === "```\n\n```" && sel.length > 0) {
+          const wrapped = "```\n" + sel + "\n```";
+          onChange(before + pre + wrapped + suf + after);
+          requestAnimationFrame(() => {
+            const cs = s + pre.length + 4;
+            el.setSelectionRange(cs, cs + sel.length);
+          });
+          return;
+        }
 
-      // If it's a code block pattern and there's selected text, wrap the selection
-      if (text === "```\n\n```" && sel.length > 0) {
-        const wrapped = "```\n" + sel + "\n```";
-        const prefix = before.length && !before.endsWith("\n") ? "\n" : "";
-        const suffix = after.length && !after.startsWith("\n") ? "\n" : "";
-        const insert = prefix + wrapped + suffix;
+        const insert = pre + text + suf;
         onChange(before + insert + after);
         requestAnimationFrame(() => {
-          el.focus();
-          const codeStart = s + prefix.length + 4; // after ```\n
-          const codeEnd = codeStart + sel.length;
-          el.setSelectionRange(codeStart, codeEnd);
+          if (text === "```\n\n```") {
+            el.setSelectionRange(s + pre.length + 4, s + pre.length + 4);
+          } else {
+            const pos = s + insert.length;
+            el.setSelectionRange(pos, pos);
+          }
         });
-        return;
-      }
-
-      const prefix = before.length && !before.endsWith("\n") ? "\n" : "";
-      const suffix = after.length && !after.startsWith("\n") ? "\n" : "";
-      const insert = prefix + text + suffix;
-      onChange(before + insert + after);
-
-      requestAnimationFrame(() => {
-        el.focus();
-        // For code block, place cursor inside
-        if (text === "```\n\n```") {
-          const cursorPos = s + prefix.length + 4; // after ```\n
-          el.setSelectionRange(cursorPos, cursorPos);
-        } else {
-          const pos = s + insert.length;
-          el.setSelectionRange(pos, pos);
-        }
       });
     },
-    [value, onChange, textareaRef],
+    [value, onChange],
   );
 
-  return { wrap, prefixLines, insertBlock };
+  const insertQuote = useCallback(
+    (style: QuoteStyle) => {
+      performAction((el) => {
+        const s = el.selectionStart;
+        const e = el.selectionEnd;
+        const selectedText = value.slice(s, e);
+        const before = value.slice(0, s);
+        const after = value.slice(e);
+
+        const titleText = "শিরোনাম লিখুন";
+
+        // Multi-line description support
+        const descText = selectedText || "এখানে বিবরণ লিখুন...";
+        const descLines = descText
+          .split("\n")
+          .map((l) => `>> ${l}`)
+          .join("\n");
+
+        const block = `>>[${style.key}] ${titleText}\n${descLines}`;
+        const pre = before.length > 0 && !before.endsWith("\n") ? "\n" : "";
+        const suf = after.length > 0 && !after.startsWith("\n") ? "\n" : "";
+
+        onChange(before + pre + block + suf + after);
+
+        requestAnimationFrame(() => {
+          const titleStart =
+            before.length + pre.length + `>>[${style.key}] `.length;
+          el.setSelectionRange(titleStart, titleStart + titleText.length);
+        });
+      });
+    },
+    [value, onChange],
+  );
+
+  const setAlign = useCallback(
+    (align: "left" | "center" | "right") => {
+      performAction((el) => {
+        const s = el.selectionStart;
+        const e = el.selectionEnd;
+        const lineStart = value.lastIndexOf("\n", s - 1) + 1;
+        let lineEnd = value.indexOf("\n", e);
+        if (lineEnd === -1) lineEnd = value.length;
+        const block = value.slice(lineStart, lineEnd);
+        const lines = block.split("\n");
+
+        const newLines = lines.map((l) => {
+          const cleaned = l
+            .replace(/^::(left|center|right)::/, "")
+            .replace(/::(left|center|right)::$/, "");
+          if (align === "left") return cleaned;
+          return `::${align}::${cleaned}::${align}::`;
+        });
+
+        const newBlock = newLines.join("\n");
+        onChange(value.slice(0, lineStart) + newBlock + value.slice(lineEnd));
+        requestAnimationFrame(() => {
+          el.setSelectionRange(lineStart, lineStart + newBlock.length);
+        });
+      });
+    },
+    [value, onChange],
+  );
+
+  return { wrap, prefixLines, insertBlock, insertQuote, setAlign };
 }
