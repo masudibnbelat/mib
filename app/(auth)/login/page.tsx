@@ -1,3 +1,5 @@
+// src/app/login/page.tsx
+
 "use client";
 
 import { useState } from "react";
@@ -7,10 +9,10 @@ import { User, Lock, Eye, EyeOff, ArrowRight, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import toast, { Toaster } from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import { generateToken, setToken } from "@/src/lib/auth";
+import { generateToken, setToken } from "@/src/lib/auth-client";
 
-// ── Static credentials ──────────────────────────────────────────
-const STATIC_USER = { username: "admin", password: "123456" };
+// ── Static credentials ──
+const STATIC_USER = { username: "kobita@masud", password: "696969" };
 
 type LoginFormData = {
   username: string;
@@ -24,14 +26,13 @@ const MotionP = motion.p;
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const router = useRouter();
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormData>();
-
-  const router = useRouter();
 
   const onSubmit = async (data: LoginFormData): Promise<void> => {
     await new Promise((r) => setTimeout(r, 1000));
@@ -42,8 +43,12 @@ export default function Login() {
     ) {
       const token = generateToken(data.username, "admin");
       setToken(token);
+
       toast.success("লগইন সফল হয়েছে!");
-      router.push("/dashboard");
+
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 500);
     } else {
       toast.error("ইউজারনেম বা পাসওয়ার্ড ভুল!");
     }
@@ -54,7 +59,6 @@ export default function Login() {
       <Toaster position="top-center" />
 
       <div className="w-full min-h-screen flex items-center justify-center px-4 py-10 relative bg-(--color-bg)">
-        {/* Card */}
         <MotionDiv
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
@@ -107,7 +111,10 @@ export default function Login() {
                 <input
                   {...register("username", {
                     required: "ইউজারনেম দিন",
-                    minLength: { value: 3, message: "কমপক্ষে ৩ অক্ষর দিন" },
+                    minLength: {
+                      value: 3,
+                      message: "কমপক্ষে ৩ অক্ষর দিন",
+                    },
                   })}
                   type="text"
                   placeholder="Username"
@@ -157,7 +164,10 @@ export default function Login() {
                 <input
                   {...register("password", {
                     required: "পাসওয়ার্ড দিন",
-                    minLength: { value: 6, message: "কমপক্ষে ৬ অক্ষর দিন" },
+                    minLength: {
+                      value: 6,
+                      message: "কমপক্ষে ৬ অক্ষর দিন",
+                    },
                   })}
                   type={showPassword ? "text" : "password"}
                   placeholder="Password"
@@ -255,31 +265,18 @@ export default function Login() {
             </MotionDiv>
           </form>
 
-          {/* Demo hint */}
+          {/* Home Link */}
           <Link href="/">
             <MotionDiv
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
               className="mt-6 p-3 rounded-xl text-xs text-center
-            bg-(--color-active-bg) border border-(--color-active-border) text-(--color-gray)"
+                bg-(--color-active-bg) border border-(--color-active-border) text-(--color-gray)"
             >
               Home
             </MotionDiv>
           </Link>
-          {/* Demo hint */}
-          <MotionDiv
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="mt-6 p-3 rounded-xl text-xs text-center
-                       bg-(--color-active-bg) border border-(--color-active-border) text-(--color-gray)"
-          >
-            Demo — username:{" "}
-            <strong className="text-(--color-text)">admin</strong>
-            &nbsp;/&nbsp;password:{" "}
-            <strong className="text-(--color-text)">123456</strong>
-          </MotionDiv>
         </MotionDiv>
       </div>
     </>

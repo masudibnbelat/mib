@@ -1,3 +1,5 @@
+// src/lib/auth.ts
+
 import "server-only";
 import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 
@@ -8,15 +10,11 @@ export type AppTokenPayload = JWTPayload & {
 
 function getJwtSecret() {
   const secret = process.env.JWT_SECRET;
-
-  if (!secret) {
-    throw new Error("JWT_SECRET is not set");
-  }
-
+  if (!secret) throw new Error("JWT_SECRET is not set");
   return new TextEncoder().encode(secret);
 }
 
-export async function generateToken(username: string, role: string) {
+export async function generateServerToken(username: string, role: string) {
   return await new SignJWT({ username, role })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()

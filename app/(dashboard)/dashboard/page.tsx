@@ -1,75 +1,124 @@
+// src/app/dashboard/page.tsx
+
 "use client";
 
-import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, FileText, FolderPlus, Home } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
+import { LogOut, Shield } from "lucide-react";
+import {
+  decodeToken,
+  removeToken,
+  isAuthenticated,
+  type TokenPayload,
+} from "@/src/lib/auth-client";
+import toast, { Toaster } from "react-hot-toast";
 
-const DashboardPage = () => {
+export default function Dashboard() {
   const router = useRouter();
+  const [user, setUser] = useState<TokenPayload | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const cards = [
-    {
-      title: "Add Topic",
-      desc: "Create and manage topics",
-      icon: FolderPlus,
-      onClick: () => router.push("/dashboard/add-topic"),
-    },
-    {
-      title: "Add Article",
-      desc: "Write and publish articles",
-      icon: FileText,
-      onClick: () => router.push("/dashboard/add-article"),
-    },
-  ];
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      toast.error("আগে লগইন করুন!");
+      router.replace("/login");
+      return;
+    }
+
+    const payload = decodeToken();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setUser(payload);
+    setLoading(false);
+  }, [router]);
+
+  const handleLogout = () => {
+    removeToken();
+    toast.success("লগআউট সফল!");
+    router.replace("/login");
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-(--color-bg)">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          className="w-8 h-8 rounded-full border-2 border-(--color-active-text) border-t-transparent"
+        />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-(--color-bg) text-(--color-text) px-6 py-10">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-10">
-        <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="opacity-70 text-sm">Manage your content easily</p>
-        </div>
-
-        <Link
-          href="/"
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-(--color-text) text-(--color-bg) text-sm hover:opacity-90 transition"
+    <>
+      <Toaster position="top-center" />
+      <div className="min-h-screen bg-(--color-bg) flex items-center justify-center px-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="w-full max-w-sm p-6 rounded-2xl bg-(--color-active-bg) border border-(--color-active-border)"
         >
-          <Home size={16} /> Home
-        </Link>
-      </div>
-
-      {/* Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {cards.map((item, idx) => (
-          <motion.div
-            key={idx}
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={item.onClick}
-            className="cursor-pointer rounded-2xl border border-(--color-text)/20 p-6 bg-(--color-bg) shadow-sm hover:shadow-md transition"
-          >
-            <item.icon className="w-8 h-8 mb-4" />
-            <h2 className="text-xl font-semibold mb-1">{item.title}</h2>
-            <p className="text-sm opacity-70">{item.desc}</p>
-          </motion.div>
-        ))}
-
-        {/* Projects Link */}
-        <Link
-          href="/dashboard/add-projects"
-          className="rounded-2xl border border-(--color-text)/20 p-6 bg-(--color-bg) shadow-sm hover:shadow-md transition flex flex-col justify-between"
-        >
-          <Plus className="w-8 h-8 mb-4" />
-          <div>
-            <h2 className="text-xl font-semibold">Add Projects</h2>
-            <p className="text-sm opacity-70">Showcase your work</p>
+          {/* User Info */}
+          <div className="flex items-center gap-3 mb-6">
+            <div
+              className="w-12 h-12 rounded-xl bg-(--color-bg) border border-(--color-active-border)
+                          flex items-center justify-center"
+            >
+              <Shield
+                size={20}
+                strokeWidth={1.8}
+                className="text-(--color-active-text)"
+              />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-(--color-text)">
+                ড্যাশবোর্ড
+              </h2>
+              <p className="text-xs text-(--color-gray)">
+                {user?.username} • {user?.role}
+              </p>
+            </div>
           </div>
-        </Link>
-      </div>
-    </div>
-  );
-};
 
-export default DashboardPage;
+          {/* Token Info */}
+          <div className="space-y-3 mb-6">
+            <div className="p-3 rounded-xl bg-(--color-bg) border border-(--color-active-border)">
+              <p className="text-xs text-(--color-gray) mb-1">Username</p>
+              <p className="text-sm font-medium text-(--color-text)">
+                {user?.username}
+              </p>
+            </div>
+            <div className="p-3 rounded-xl bg-(--color-bg) border border-(--color-active-border)">
+              <p className="text-xs text-(--color-gray) mb-1">Role</p>
+              <p className="text-sm font-medium text-(--color-text)">
+                {user?.role}
+              </p>
+            </div>
+            <div className="p-3 rounded-xl bg-(--color-bg) border border-(--color-active-border)">
+              <p className="text-xs text-(--color-gray) mb-1">Token Expires</p>
+              <p className="text-sm font-medium text-(--color-text)">
+                {user?.exp
+                  ? new Date(user.exp * 1000).toLocaleString("bn-BD")
+                  : "N/A"}
+              </p>
+            </div>
+          </div>
+
+          {/* Logout */}
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={handleLogout}
+            className="w-full py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2
+                       bg-red-500/10 text-red-500 border border-red-500/20 cursor-pointer
+                       hover:bg-red-500/15 transition-colors duration-200"
+          >
+            <LogOut size={16} strokeWidth={2} />
+            লগআউট
+          </motion.button>
+        </motion.div>
+      </div>
+    </>
+  );
+}
