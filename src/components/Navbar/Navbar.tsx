@@ -225,7 +225,7 @@ const Navbar: React.FC = () => {
                   ? "Switch to light theme"
                   : "Switch to dark theme"
               }
-              className="grid h-11 w-11 place-items-center  bg-(--color-bg) text-(--color-text)"
+              className="grid h-11 w-11 place-items-center text-(--color-text)"
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.92 }}
             >
