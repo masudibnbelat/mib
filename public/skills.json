@@ -44,12 +44,14 @@
       { "icon": "/Service/node.svg", "name": "Node.js", "level": "Master" },
       { "icon": "/Service/express.svg", "name": "Express", "level": "Master" },
       { "icon": "/Service/NextJs.svg", "name": "Next.js", "level": "Master" },
+      { "icon": "/Service/python.svg", "name": "Python", "level": "Master" },
+      { "icon": "/Service/go.svg", "name": "Golang", "level": "Beginner" },
+      { "icon": "/Service/jwt.svg", "name": "JWT", "level": "Master" },
       {
         "icon": "/Service/mongoDB.svg",
         "name": "MongoDB",
         "level": "Intermediate"
       },
-      { "icon": "/Service/jwt.svg", "name": "JWT", "level": "Master" },
       {
         "icon": "/Service/firebase.svg",
         "name": "Firebase",

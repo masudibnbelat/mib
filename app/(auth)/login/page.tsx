@@ -7,6 +7,7 @@ import { User, Lock, Eye, EyeOff, ArrowRight, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import toast, { Toaster } from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import { generateToken, setToken } from "@/src/lib/auth";
 
 // ── Static credentials ──────────────────────────────────────────
 const STATIC_USER = { username: "admin", password: "123456" };
@@ -39,6 +40,8 @@ export default function Login() {
       data.username === STATIC_USER.username &&
       data.password === STATIC_USER.password
     ) {
+      const token = generateToken(data.username, "admin");
+      setToken(token);
       toast.success("লগইন সফল হয়েছে!");
       router.push("/dashboard");
     } else {

@@ -1,7 +1,7 @@
 [
   {
     "command": "whoami",
-    "result": "Masud ibn Belal\nMERN Stack / Full Stack Developer\nPassionate about building dynamic and scalable web applications"
+    "result": "Masud ibn Belat\nMERN Stack / Full Stack Developer\nPassionate about building dynamic and scalable web applications"
   },
   {
     "command": "cat skills/languages.txt",

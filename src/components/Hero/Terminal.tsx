@@ -203,7 +203,7 @@ const Terminal: React.FC = () => {
               </div>
               {cmd.result && (
                 <div
-                  className={`${styles.result} whitespace-pre-wrap pl-6 leading-relaxed`}
+                  className={`${styles.result} whitespace-pre-wrap pl-6 leading-relaxed `}
                 >
                   {cmd.result}
                 </div>

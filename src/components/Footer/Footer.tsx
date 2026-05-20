@@ -9,10 +9,7 @@ const Footer = () => {
 
         <p className="text-[0.8rem] sm:text-[0.9rem] text-gray-600 rubik-regular whitespace-nowrap">
           &copy; 2021 All Rights Reserved by{" "}
-          <Link
-            href="/dashboard"
-            className="font-bold audiowide tracking-widest"
-          >
+          <Link href="/login" className="font-bold audiowide tracking-widest">
             Masud ibn Belat
           </Link>
         </p>
