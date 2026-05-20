@@ -213,21 +213,6 @@ export default function Login() {
               </AnimatePresence>
             </MotionDiv>
 
-            {/* Forgot Password */}
-            <MotionDiv
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.25 }}
-              className="text-right -mt-1"
-            >
-              <button
-                type="button"
-                className="text-xs text-(--color-gray) transition-opacity duration-150 hover:opacity-70"
-              >
-                পাসওয়ার্ড ভুলে গেছেন?
-              </button>
-            </MotionDiv>
-
             {/* Submit */}
             <MotionDiv
               initial={{ opacity: 0, y: 8 }}
