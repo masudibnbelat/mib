@@ -4,7 +4,7 @@ import { RandomizedTextEffect } from "@/src/ui/text-randomized";
 
 const AutoType = () => {
   const [currentTitleIndex, setCurrentTitleIndex] = useState(0);
-  const { theme } = useTheme();
+  const { theme, mounted } = useTheme();
   const titles = ["Developer.", "Designer."];
 
   useEffect(() => {
@@ -18,9 +18,13 @@ const AutoType = () => {
   return (
     <div>
       <h1
-        className={`relative z-10  leading-tight ${
-          theme === "dark" ? "text-[#a8e6cf]" : "text-[#0C0D12]"
-        }  `}
+        className={`relative z-10 leading-tight ${
+          !mounted
+            ? "text-[#0C0D12]"
+            : theme === "dark"
+              ? "text-[#a8e6cf]"
+              : "text-[#0C0D12]"
+        }`}
       >
         <RandomizedTextEffect text={titles[currentTitleIndex]} />
       </h1>

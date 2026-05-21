@@ -15,8 +15,6 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { useTheme } from "@/src/providers/ThemeProvider";
 
-// ------------------ TYPES ------------------
-
 type MenuItemName = "home" | "projects" | "articles" | "Third Eye";
 
 interface MenuItem {
@@ -27,8 +25,6 @@ interface MenuItem {
 
 type NavItemVariant = "desktop" | "mobile";
 
-// ------------------ MENU ITEMS ------------------
-
 const MENU_ITEMS: readonly MenuItem[] = [
   { name: "home", path: "/", icon: Home },
   { name: "articles", path: "/articles", icon: Newspaper },
@@ -36,17 +32,12 @@ const MENU_ITEMS: readonly MenuItem[] = [
   { name: "Third Eye", path: "/third-eye", icon: Eye },
 ] as const;
 
-// ------------------ HELPERS ------------------
-
 const getActiveItem = (pathname: string): MenuItemName => {
   const matched = MENU_ITEMS.find((item) =>
     item.path === "/" ? pathname === "/" : pathname.startsWith(item.path),
   );
-
   return matched?.name ?? "home";
 };
-
-// ------------------ NAV ITEM ------------------
 
 interface NavItemProps {
   item: MenuItem;
@@ -72,7 +63,6 @@ const NavItem = ({ item, isActive, variant }: NavItemProps) => {
             }}
           />
         )}
-
         <Link
           href={item.path}
           prefetch
@@ -112,7 +102,6 @@ const NavItem = ({ item, isActive, variant }: NavItemProps) => {
           }}
         />
       )}
-
       <motion.span
         className="relative z-10 grid place-items-center"
         whileTap={{ scale: 0.85 }}
@@ -123,52 +112,35 @@ const NavItem = ({ item, isActive, variant }: NavItemProps) => {
   );
 };
 
-// ------------------ COMPONENT ------------------
-
 const Navbar: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, mounted } = useTheme(); // ← local mounted state বাদ
 
   const activeItem = useMemo(() => getActiveItem(pathname), [pathname]);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
-
+    const handleScroll = () => setScrolled(window.scrollY > 20);
     handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-    };
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const handleLogoScroll = () => {
     const scrollTop = window.scrollY;
     const maxScroll =
       document.documentElement.scrollHeight - window.innerHeight;
-
     const nearTop = scrollTop <= 50;
     const nearBottom = maxScroll - scrollTop <= 50;
 
     if (nearTop) {
-      window.scrollTo({
-        top: maxScroll,
-        behavior: "smooth",
-      });
+      window.scrollTo({ top: maxScroll, behavior: "smooth" });
       return;
     }
-
     if (nearBottom) {
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
-
     window.scrollTo({
       top: scrollTop < maxScroll / 2 ? maxScroll : 0,
       behavior: "smooth",
@@ -185,26 +157,24 @@ const Navbar: React.FC = () => {
     <div>
       {/* Top Navbar */}
       <nav
-        className={`fixed z-50 transition-all duration-300    ${
+        className={`fixed z-50 transition-all duration-300 ${
           scrolled
-            ? "top-2 container mx-auto  rounded-xl border border-(--color-active-border) transition-all duration-300   bg-(--color-bg) py-3 backdrop-blur-xl"
-            : "top-0 left-0 right-0 py-4 border border-(--color-active-border) transition-all duration-300  "
+            ? "top-2 container mx-auto rounded-xl border border-(--color-active-border) bg-(--color-bg) py-3 backdrop-blur-xl"
+            : "top-0 left-0 right-0 py-4 border border-(--color-active-border)"
         }`}
       >
         <div className="container mx-auto px-5">
           <div className="flex items-center justify-between">
-            {/* Logo */}
             <Link
               href="/"
               prefetch
               onClick={handleLogoClick}
-              aria-label="Masud ibn Belat"
-              className="audiowide text-2xl md:text-3xl leading-none text-(--color-text) transition-colors  "
+              aria-label="Masud"
+              className="audiowide text-2xl md:text-3xl leading-none text-(--color-text) transition-colors"
             >
               Masud
             </Link>
 
-            {/* Desktop Menu */}
             <ul className="relative hidden items-center space-x-1 md:flex">
               {MENU_ITEMS.map((item) => (
                 <NavItem
@@ -216,34 +186,37 @@ const Navbar: React.FC = () => {
               ))}
             </ul>
 
-            {/* Theme Toggle */}
             <motion.button
               type="button"
               onClick={toggleTheme}
               aria-label={
-                theme === "dark"
-                  ? "Switch to light theme"
-                  : "Switch to dark theme"
+                !mounted
+                  ? "Toggle theme"
+                  : theme === "dark"
+                    ? "Switch to light theme"
+                    : "Switch to dark theme"
               }
               className="grid h-11 w-11 place-items-center text-(--color-text)"
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.92 }}
             >
               <AnimatePresence mode="wait" initial={false}>
-                <motion.span
-                  key={theme}
-                  initial={{ opacity: 0, rotate: -90, scale: 0.7 }}
-                  animate={{ opacity: 1, rotate: 0, scale: 1 }}
-                  exit={{ opacity: 0, rotate: 90, scale: 0.7 }}
-                  transition={{ duration: 0.2 }}
-                  className="grid place-items-center"
-                >
-                  {theme === "dark" ? (
-                    <Moon className="h-5 w-5" strokeWidth={2.2} />
-                  ) : (
-                    <Sun className="h-5 w-5" strokeWidth={2.2} />
-                  )}
-                </motion.span>
+                {mounted && (
+                  <motion.span
+                    key={theme}
+                    initial={{ opacity: 0, rotate: -90, scale: 0.7 }}
+                    animate={{ opacity: 1, rotate: 0, scale: 1 }}
+                    exit={{ opacity: 0, rotate: 90, scale: 0.7 }}
+                    transition={{ duration: 0.2 }}
+                    className="grid place-items-center"
+                  >
+                    {theme === "dark" ? (
+                      <Moon className="h-5 w-5" strokeWidth={2.2} />
+                    ) : (
+                      <Sun className="h-5 w-5" strokeWidth={2.2} />
+                    )}
+                  </motion.span>
+                )}
               </AnimatePresence>
             </motion.button>
           </div>

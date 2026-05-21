@@ -4,6 +4,8 @@ import {
   useContext,
   useState,
   useEffect,
+  useSyncExternalStore,
+  useCallback,
   type ReactNode,
   type FC,
 } from "react";
@@ -15,6 +17,7 @@ type Corner = "top-right" | "top-left" | "bottom-right" | "bottom-left";
 interface ThemeContextType {
   theme: Theme;
   toggleTheme: () => void;
+  mounted: boolean;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -58,27 +61,22 @@ const THEME_COLORS: Record<
   },
 } as const;
 
-// Get theme from localStorage or return default
-const getInitialTheme = (): Theme => {
-  try {
-    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
-    if (savedTheme === "light" || savedTheme === "dark") {
-      return savedTheme;
-    }
-  } catch (error) {
-    console.error("Error reading theme from localStorage:", error);
-  }
-  return "dark"; // Default theme
+const themeSubscribe = (cb: () => void) => {
+  window.addEventListener("storage", cb);
+  return () => window.removeEventListener("storage", cb);
 };
 
-// Save theme to localStorage
-const saveTheme = (theme: Theme): void => {
-  try {
-    localStorage.setItem(THEME_STORAGE_KEY, theme);
-  } catch (error) {
-    console.error("Error saving theme to localStorage:", error);
-  }
+const themeGetSnapshot = (): Theme => {
+  if (typeof window === "undefined") return "dark";
+  const saved = localStorage.getItem(THEME_STORAGE_KEY);
+  return saved === "light" || saved === "dark" ? saved : "dark";
 };
+
+const themeGetServerSnapshot = (): Theme => "dark";
+
+const mountedSubscribe = () => () => {};
+const mountedGetSnapshot = () => true;
+const mountedGetServerSnapshot = () => false;
 
 export function useTheme() {
   const context = useContext(ThemeContext);
@@ -87,37 +85,40 @@ export function useTheme() {
 }
 
 export const ThemeProvider: FC<{ children: ReactNode }> = ({ children }) => {
-  const [theme, setTheme] = useState<Theme>(() => {
-    if (typeof window === "undefined") return "dark";
-    return getInitialTheme();
-  });
+  const theme = useSyncExternalStore(
+    themeSubscribe,
+    themeGetSnapshot,
+    themeGetServerSnapshot,
+  );
+
+  const mounted = useSyncExternalStore(
+    mountedSubscribe,
+    mountedGetSnapshot,
+    mountedGetServerSnapshot,
+  );
 
   const [isAnimating, setIsAnimating] = useState(false);
-  const [nextTheme, setNextTheme] = useState<Theme>(theme);
+  const [nextTheme, setNextTheme] = useState<Theme>(themeGetSnapshot);
 
-  // Apply theme to body className
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
 
-  const toggleTheme = () => {
+  const toggleTheme = useCallback(() => {
     const newTheme: Theme = theme === "light" ? "dark" : "light";
     setNextTheme(newTheme);
     setIsAnimating(true);
-
-    // Save to localStorage immediately
-    saveTheme(newTheme);
-
-    setTimeout(() => setTheme(newTheme), 200);
+    localStorage.setItem(THEME_STORAGE_KEY, newTheme);
+    window.dispatchEvent(new Event("storage"));
     setTimeout(() => setIsAnimating(false), 500);
-  };
+  }, [theme]);
 
   const colors = THEME_COLORS[nextTheme];
   const clipPath = CLIP_PATHS[ANIMATION_CORNER];
   const cornerStyle = CORNER_STYLES[ANIMATION_CORNER];
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, mounted }}>
       {children}
       <AnimatePresence mode="wait">
         {isAnimating && (
@@ -154,10 +155,7 @@ export const ThemeProvider: FC<{ children: ReactNode }> = ({ children }) => {
                     Object.entries(cornerStyle).map(([k, v]) => [k, v + 250]),
                   ),
                   background: colors.particle,
-                  boxShadow: `0 0 15px ${colors.particle.replace(
-                    "0.7",
-                    "0.5",
-                  )}`,
+                  boxShadow: `0 0 15px ${colors.particle.replace("0.7", "0.5")}`,
                 }}
                 initial={{ opacity: 0, scale: 0 }}
                 animate={{
