@@ -56,7 +56,7 @@ const SocialMedia = () => {
         variants={container}
         initial="hidden"
         animate="show"
-        className="flex flex-wrap items-center justify-center gap-4"
+        className="flex flex-wrap items-center justify-center gap-6 lg:gap-5"
       >
         {socials.map((social) => {
           const Icon = social.icon;
