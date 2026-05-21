@@ -134,12 +134,11 @@ const ProjectCard = ({
 );
 
 /* ─── marquee ───────────────────────────────────────── */
-/* ─── marquee ───────────────────────────────────────── */
 const Marquee = ({
   projects,
   onOpen,
   reverse = false,
-  speed = 4,
+  speed = 6,
 }: {
   projects: Project[];
   onOpen: (p: Project) => void;

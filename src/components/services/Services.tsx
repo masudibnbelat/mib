@@ -50,7 +50,7 @@ const MarqueeRow: React.FC<{ items: Review[]; reverse?: boolean }> = ({
       style={{
         display: "flex",
         width: "max-content",
-        animation: `${reverse ? "marquee-reverse" : "marquee"} 30s linear infinite`,
+        animation: `${reverse ? "marquee-reverse" : "marquee"} 90s linear infinite`,
       }}
     >
       {[...items, ...items].map((review, i) => (
