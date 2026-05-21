@@ -1,7 +1,6 @@
 "use client";
 import React from "react";
 import Image from "next/image";
-import Link from "next/link";
 import reviewsData from "@/public/services.json";
 
 interface Review {
@@ -55,12 +54,9 @@ const MarqueeRow: React.FC<{ items: Review[]; reverse?: boolean }> = ({
       }}
     >
       {[...items, ...items].map((review, i) => (
-        <Link
-          key={`${review.username}-${i}`}
-          href={`/reviews/${review.username}`}
-        >
+        <div key={`${review.username}-${i}`}>
           <ReviewCard {...review} />
-        </Link>
+        </div>
       ))}
     </div>
   </div>
