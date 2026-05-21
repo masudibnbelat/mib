@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 interface TypewriterTextProps {
   text: string;
@@ -8,34 +8,44 @@ interface TypewriterTextProps {
   className?: string;
 }
 
-export const TypewriterText: React.FC<TypewriterTextProps> = ({
+export function TypewriterText({
   text,
-  delay = 100,
+  delay = 30,
   onComplete,
   onCharacter,
   className = "",
-}) => {
-  const [displayText, setDisplayText] = useState("");
-  const [currentIndex, setCurrentIndex] = useState(0);
+}: TypewriterTextProps) {
+  const spanRef = useRef<HTMLSpanElement>(null);
+  const onCompleteRef = useRef(onComplete);
+  const onCharacterRef = useRef(onCharacter);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setDisplayText("");
-    setCurrentIndex(0);
-  }, [text]);
+    onCompleteRef.current = onComplete;
+    onCharacterRef.current = onCharacter;
+  });
 
   useEffect(() => {
-    if (currentIndex < text.length) {
-      const timeout = setTimeout(() => {
-        setDisplayText((prev) => prev + text[currentIndex]);
-        setCurrentIndex((prev) => prev + 1);
-        onCharacter?.();
-      }, delay);
-      return () => clearTimeout(timeout);
-    } else if (currentIndex === text.length && currentIndex > 0 && onComplete) {
-      onComplete();
-    }
-  }, [currentIndex, delay, text, onComplete, onCharacter]);
+    const el = spanRef.current;
+    if (!el) return;
 
-  return <span className={className}>{displayText}</span>;
-};
+    el.textContent = "";
+    let index = 0;
+    let timerId: ReturnType<typeof setTimeout>;
+
+    const type = () => {
+      if (index < text.length) {
+        el.textContent = text.slice(0, ++index);
+        onCharacterRef.current?.();
+        timerId = setTimeout(type, delay);
+      } else {
+        onCompleteRef.current?.();
+      }
+    };
+
+    timerId = setTimeout(type, delay);
+
+    return () => clearTimeout(timerId);
+  }, [text, delay]);
+
+  return <span ref={spanRef} className={className} />;
+}

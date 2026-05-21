@@ -5,21 +5,10 @@ import React, {
   useRef,
   useCallback,
 } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
 import { ChevronRight } from "lucide-react";
 import { TypewriterText } from "./TypewriterText";
 import { useTheme } from "@/src/providers/ThemeProvider";
-
-interface Command {
-  command: string;
-  result?: string;
-}
-
-interface CompletedCommand {
-  command: string;
-  result?: string;
-}
+import { Command, COMMANDS } from "@/src/data/commands";
 
 const THEME_STYLES = {
   dark: {
@@ -45,11 +34,11 @@ const THEME_STYLES = {
 } as const;
 
 const CONFIG = {
-  COMMAND_DELAY: 80,
-  RESULT_DELAY: 30,
-  DISPLAY_TIME: 4000,
-  FADE: 0.5,
-  BLINK: 0.8,
+  COMMAND_DELAY: 24,
+  RESULT_DELAY: 12,
+  DISPLAY_TIME: 1600,
+  FADE_TIME: 220,
+  MAX_HISTORY: 6,
 } as const;
 
 type TerminalState =
@@ -67,95 +56,98 @@ const Terminal: React.FC = () => {
 
   const [state, setState] = useState<TerminalState>("typing-command");
   const [commandIndex, setCommandIndex] = useState(0);
-  const [completedCommands, setCompletedCommands] = useState<
-    CompletedCommand[]
-  >([]);
+  const [completedCommands, setCompletedCommands] = useState<Command[]>([]);
+
   const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollRafRef = useRef<number | null>(null);
+  const displayTimerRef = useRef<number | null>(null);
+  const fadeTimerRef = useRef<number | null>(null);
 
-  const {
-    data: commands,
-    isLoading,
-    error,
-  } = useQuery<Command[]>({
-    queryKey: ["commands"],
-    queryFn: async () => {
-      const res = await fetch("/commands.json");
-      if (!res.ok) throw new Error("Failed to fetch commands");
-      const data = await res.json();
-      const list = Array.isArray(data) ? data : data?.commands;
-      if (!list) throw new Error("Invalid commands format");
-      return list;
-    },
-    staleTime: Infinity,
-    refetchOnWindowFocus: false,
-  });
-
-  const currentCommand = useMemo(
-    () => commands?.[commandIndex % (commands?.length || 1)],
-    [commands, commandIndex],
-  );
+  const currentCommand = COMMANDS[commandIndex % COMMANDS.length];
 
   const scrollToBottom = useCallback(() => {
-    requestAnimationFrame(() => {
-      if (scrollRef.current) {
-        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (scrollRafRef.current !== null) return;
+
+    scrollRafRef.current = requestAnimationFrame(() => {
+      scrollRafRef.current = null;
+      const el = scrollRef.current;
+      if (el) {
+        el.scrollTop = el.scrollHeight;
       }
     });
   }, []);
 
-  // completedCommands change হলে scroll
+  const clearTimers = useCallback(() => {
+    if (displayTimerRef.current) {
+      window.clearTimeout(displayTimerRef.current);
+      displayTimerRef.current = null;
+    }
+    if (fadeTimerRef.current) {
+      window.clearTimeout(fadeTimerRef.current);
+      fadeTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      clearTimers();
+      if (scrollRafRef.current) {
+        cancelAnimationFrame(scrollRafRef.current);
+      }
+    };
+  }, [clearTimers]);
+
   useEffect(() => {
     scrollToBottom();
-  }, [completedCommands, scrollToBottom]);
+  }, [completedCommands, state, scrollToBottom]);
 
-  // fading শেষে next command এ যাও
+  const currentCommandRef = useRef(currentCommand);
   useEffect(() => {
-    if (!commands?.length || state !== "fading") return;
-    const timer = setTimeout(() => {
-      if (currentCommand) {
-        setCompletedCommands((prev) => [...prev, currentCommand]);
-      }
-      setCommandIndex((prev) => (prev + 1) % commands.length);
-      setState("typing-command");
-    }, CONFIG.FADE * 1000);
-    return () => clearTimeout(timer);
-  }, [commands, state, currentCommand]);
+    currentCommandRef.current = currentCommand;
+  }, [currentCommand]);
 
-  const transitions = {
-    command: () => setState("typing-result"),
-    result: () => {
+  const handleCommandComplete = useCallback(() => {
+    const cmd = currentCommandRef.current;
+    if (cmd.result) {
+      setState("typing-result");
+    } else {
       setState("displaying");
-      setTimeout(() => setState("fading"), CONFIG.DISPLAY_TIME);
-    },
-  };
+      clearTimers();
+      displayTimerRef.current = window.setTimeout(() => {
+        setState("fading");
+      }, CONFIG.DISPLAY_TIME);
+    }
+  }, [clearTimers]);
 
-  if (isLoading)
-    return (
-      <div className={`${styles.bg} rounded-lg border ${styles.border} p-4`}>
-        <motion.p
-          animate={{ opacity: [1, 0.4, 1] }}
-          transition={{ duration: 1.2, repeat: Infinity }}
-          className={`${styles.loading} font-mono text-sm`}
-        >
-          Loading terminal...
-        </motion.p>
-      </div>
-    );
+  const handleResultComplete = useCallback(() => {
+    setState("displaying");
+    clearTimers();
 
-  if (error)
-    return (
-      <div className={`${styles.bg} rounded-lg border ${styles.border} p-4`}>
-        <p className={`${styles.error} font-mono text-sm`}>
-          Error: {(error as Error).message}
-        </p>
-      </div>
-    );
+    displayTimerRef.current = window.setTimeout(() => {
+      setState("fading");
+    }, CONFIG.DISPLAY_TIME);
+  }, [clearTimers]);
+
+  useEffect(() => {
+    if (state !== "fading") return;
+
+    clearTimers();
+
+    fadeTimerRef.current = window.setTimeout(() => {
+      setCompletedCommands((prev) =>
+        [...prev, currentCommand].slice(-CONFIG.MAX_HISTORY),
+      );
+      setCommandIndex((prev) => (prev + 1) % COMMANDS.length);
+      setState("typing-command");
+    }, CONFIG.FADE_TIME);
+
+    return clearTimers;
+  }, [state, currentCommand, clearTimers]);
+
+  if (!COMMANDS.length) return null;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.8 }}
+    <div
       className={`${styles.bg} rounded-lg border ${styles.border} overflow-hidden`}
     >
       {/* Title bar */}
@@ -170,124 +162,102 @@ const Terminal: React.FC = () => {
             <span className="ml-1">terminal</span>
           </span>
         </div>
+
         <div className="flex gap-2">
           {["bg-red-500", "bg-yellow-500", "bg-green-500"].map((color, i) => (
             <div
               key={i}
-              className={`w-3 h-3 rounded-full ${color} cursor-pointer hover:opacity-80 transition-opacity`}
+              className={`w-3 h-3 rounded-full ${color} opacity-90`}
             />
           ))}
         </div>
       </div>
 
-      {/* Terminal body */}
+      {/* Body */}
       <div
         ref={scrollRef}
         className={`p-4 ${styles.text} font-mono text-sm h-80 overflow-y-auto`}
         style={{ scrollbarWidth: "none" }}
       >
         <div className="space-y-4">
-          {/* Completed commands — dim */}
+          {/* History */}
           {completedCommands.map((cmd, idx) => (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 1 }}
-              animate={{ opacity: 0.45 }}
-              transition={{ duration: 0.4 }}
-              className="space-y-2"
+            <div
+              key={`${cmd.command}-${idx}`}
+              className="space-y-2 opacity-50 transition-opacity"
             >
               <div className="flex items-center gap-2">
                 <span className={styles.prompt}>➜</span>
                 <span className={styles.result}>~</span>
                 <span className={styles.prompt}>{cmd.command}</span>
               </div>
+
               {cmd.result && (
                 <div
-                  className={`${styles.result} whitespace-pre-wrap pl-6 leading-relaxed `}
+                  className={`${styles.result} whitespace-pre-wrap pl-6 leading-relaxed`}
                 >
                   {cmd.result}
                 </div>
               )}
-            </motion.div>
+            </div>
           ))}
 
-          {/* Current active command */}
-          <AnimatePresence mode="wait">
-            {currentCommand && (
-              <motion.div
-                key={commandIndex}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: state === "fading" ? 0 : 1 }}
-                transition={{ duration: CONFIG.FADE }}
-                className="space-y-2"
-              >
-                {/* Command line */}
-                <div className="flex items-center gap-2">
-                  <span className={styles.prompt}>➜</span>
-                  <span className={styles.result}>~</span>
+          {/* Active command */}
+          <div
+            className="space-y-2 transition-opacity"
+            style={{
+              opacity: state === "fading" ? 0 : 1,
+              transitionDuration: `${CONFIG.FADE_TIME}ms`,
+            }}
+          >
+            <div className="flex items-center gap-2">
+              <span className={styles.prompt}>➜</span>
+              <span className={styles.result}>~</span>
 
-                  {state === "typing-command" ? (
-                    <div>
-                      <TypewriterText
-                        text={currentCommand.command}
-                        delay={CONFIG.COMMAND_DELAY}
-                        onComplete={transitions.command}
-                        onCharacter={scrollToBottom}
-                        className={styles.prompt}
-                      />
-                      <motion.span
-                        animate={{ opacity: [1, 0] }}
-                        transition={{
-                          duration: CONFIG.BLINK,
-                          repeat: Infinity,
-                        }}
-                        className={`inline-block w-2 h-5 ml-1 ${styles.cursor}`}
-                      />
-                    </div>
-                  ) : (
-                    <span className={styles.prompt}>
-                      {currentCommand.command}
-                    </span>
-                  )}
+              {state === "typing-command" ? (
+                <div>
+                  <TypewriterText
+                    text={currentCommand.command}
+                    delay={CONFIG.COMMAND_DELAY}
+                    onComplete={handleCommandComplete}
+                    onCharacter={scrollToBottom}
+                    className={styles.prompt}
+                  />
+                  <span
+                    className={`inline-block w-2 h-4 ml-1 align-middle animate-pulse ${styles.cursor}`}
+                  />
                 </div>
+              ) : (
+                <span className={styles.prompt}>{currentCommand.command}</span>
+              )}
+            </div>
 
-                {/* Result */}
-                {state !== "typing-command" && currentCommand.result && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.25 }}
-                    className={`${styles.result} whitespace-pre-wrap pl-6 leading-relaxed`}
-                  >
-                    {state === "typing-result" ? (
-                      <div>
-                        <TypewriterText
-                          text={currentCommand.result}
-                          delay={CONFIG.RESULT_DELAY}
-                          onComplete={transitions.result}
-                          onCharacter={scrollToBottom}
-                          className={styles.result}
-                        />
-                        <motion.span
-                          animate={{ opacity: [1, 0] }}
-                          transition={{
-                            duration: CONFIG.BLINK,
-                            repeat: Infinity,
-                          }}
-                          className={`inline-block w-2 h-5 ml-1 ${styles.cursor}`}
-                        />
-                      </div>
-                    ) : (
-                      currentCommand.result
-                    )}
-                  </motion.div>
+            {state !== "typing-command" && currentCommand.result && (
+              <div
+                className={`${styles.result} whitespace-pre-wrap pl-6 leading-relaxed`}
+              >
+                {state === "typing-result" ? (
+                  <div>
+                    <TypewriterText
+                      text={currentCommand.result}
+                      delay={CONFIG.RESULT_DELAY}
+                      onComplete={handleResultComplete}
+                      onCharacter={scrollToBottom}
+                      className={styles.result}
+                    />
+                    <span
+                      className={`inline-block w-2 h-4 ml-1 align-middle animate-pulse ${styles.cursor}`}
+                    />
+                  </div>
+                ) : (
+                  currentCommand.result
                 )}
-              </motion.div>
+              </div>
             )}
-          </AnimatePresence>
+          </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
 

@@ -115,7 +115,7 @@ const NavItem = ({ item, isActive, variant }: NavItemProps) => {
 const Navbar: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
-  const { theme, toggleTheme, mounted } = useTheme(); // ← local mounted state বাদ
+  const { theme, toggleTheme, mounted } = useTheme();
 
   const activeItem = useMemo(() => getActiveItem(pathname), [pathname]);
 
@@ -229,7 +229,7 @@ const Navbar: React.FC = () => {
         initial={{ y: 80, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: "spring", stiffness: 260, damping: 24 }}
-        className="fixed bottom-[calc(env(safe-area-inset-bottom)+1rem)] left-1/2 z-50 flex -translate-x-1/2 items-center gap-1 rounded-lg border border-(--color-active-border) bg-(--color-bg) px-2 py-2 backdrop-blur-xl md:hidden"
+        className="fixed bottom-2 left-1/2 z-50 flex -translate-x-1/2 items-center gap-1 rounded-lg border border-(--color-active-border) bg-(--color-bg) px-2 py-2 backdrop-blur-xl md:hidden"
       >
         {MENU_ITEMS.map((item) => (
           <NavItem
