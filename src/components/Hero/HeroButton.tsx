@@ -39,11 +39,16 @@ export const HeroButton = () => {
   const handleDownload = () => {
     if (downloading) return;
     setDownloading(true);
-    const a = document.createElement("a");
-    a.href = DOWNLOAD_URL;
-    a.download = "resume.pdf";
-    a.click();
-    setTimeout(() => setDownloading(false), 3000);
+
+    const iframe = document.createElement("iframe");
+    iframe.style.display = "none";
+    iframe.src = DOWNLOAD_URL;
+    document.body.appendChild(iframe);
+
+    setTimeout(() => {
+      document.body.removeChild(iframe);
+      setDownloading(false);
+    }, 4000);
   };
 
   return (
