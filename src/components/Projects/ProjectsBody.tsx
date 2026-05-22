@@ -1,34 +1,23 @@
 // src/components/projects/ProjectsBody.tsx
 "use client";
 
-import {
-  Fragment,
-  startTransition,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { startTransition, useCallback, useEffect, useState } from "react";
 import {
   keepPreviousData,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
-import {
-  AlertCircle,
-  ChevronLeft,
-  ChevronRight,
-  FolderOpen,
-} from "lucide-react";
+import { AlertCircle, FolderOpen } from "lucide-react";
 import { axiosSecure } from "@/src/hooks/axiosSecure";
 import type { ApiResponse, FilterType, Project } from "@/src/types/project";
 import ProjectCard from "./ProjectCard";
 import ProjectModal from "./ProjectModal";
 import ProjectFilter, { FILTERS } from "./ProjectFilter";
 import Loader from "../common/Loader";
+import Pagination from "../common/Pagination";
 
-const PAGE_SIZE = 9;
+const PAGE_SIZE = 6;
 const STALE_TIME = 1000 * 60 * 5;
 const GC_TIME = 1000 * 60 * 30;
 
@@ -47,18 +36,6 @@ const fetchProjects = async (
   });
 
   return res.data;
-};
-
-const getVisiblePages = (current: number, total: number) => {
-  if (total <= 5) {
-    return Array.from({ length: total }, (_, i) => i + 1);
-  }
-
-  const pages = new Set([1, total, current - 1, current, current + 1]);
-
-  return Array.from(pages)
-    .filter((p) => p >= 1 && p <= total)
-    .sort((a, b) => a - b);
 };
 
 const ProjectsBody = () => {
@@ -93,12 +70,6 @@ const ProjectsBody = () => {
 
   const projects = data?.data ?? [];
   const meta = data?.meta;
-
-  // eslint-disable-next-line react-hooks/preserve-manual-memoization
-  const pageNumbers = useMemo(() => {
-    if (!meta?.totalPages) return [];
-    return getVisiblePages(page, meta.totalPages);
-  }, [page, meta?.totalPages]);
 
   const handleFilterChange = useCallback(
     (nextFilter: FilterType) => {
@@ -263,49 +234,14 @@ const ProjectsBody = () => {
       </div>
 
       {meta && meta.totalPages > 1 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="mt-8 flex flex-wrap items-center justify-center gap-2"
-        >
-          <button
-            type="button"
-            disabled={page <= 1}
-            onClick={() => handlePageChange(page - 1)}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-(--color-active-border) bg-(--color-active-bg) text-(--color-gray) transition-all hover:border-violet-500/40 hover:text-(--color-text) disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-
-          {pageNumbers.map((p, i) => (
-            <Fragment key={p}>
-              {i > 0 && pageNumbers[i] - pageNumbers[i - 1] > 1 && (
-                <span className="px-1 text-sm text-(--color-gray)">...</span>
-              )}
-
-              <button
-                type="button"
-                onClick={() => handlePageChange(p)}
-                className={`h-10 min-w-10 rounded-xl border px-3 text-sm font-medium transition-all ${
-                  page === p
-                    ? "border-violet-500 bg-violet-600 text-white shadow-md shadow-violet-600/20"
-                    : "border-(--color-active-border) bg-(--color-active-bg) text-(--color-gray) hover:border-violet-500/40 hover:text-(--color-text)"
-                }`}
-              >
-                {p}
-              </button>
-            </Fragment>
-          ))}
-
-          <button
-            type="button"
-            disabled={page >= meta.totalPages}
-            onClick={() => handlePageChange(page + 1)}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-(--color-active-border) bg-(--color-active-bg) text-(--color-gray) transition-all hover:border-violet-500/40 hover:text-(--color-text) disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </motion.div>
+        <div className="mt-8">
+          <Pagination
+            currentPage={page}
+            totalPages={meta.totalPages}
+            onPageChange={handlePageChange}
+            storageKey="projects-pagination"
+          />
+        </div>
       )}
 
       {selectedProject && (

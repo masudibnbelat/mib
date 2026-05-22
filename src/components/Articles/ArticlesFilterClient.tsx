@@ -6,6 +6,7 @@ import type { TopicData } from "@/src/types/Topic";
 import type { ArticleData } from "@/src/types/article";
 import SelectInput from "../common/SelectInput";
 import ArticleCard from "./ArticleCard";
+import Pagination from "../common/Pagination";
 
 interface Props {
   articles: ArticleData[];
@@ -13,9 +14,11 @@ interface Props {
 }
 
 const ALL = "all-topics";
+const PAGE_SIZE = 6;
 
 export default function ArticlesFilterClient({ articles, topics }: Props) {
   const [selected, setSelected] = useState(ALL);
+  const [page, setPage] = useState(1);
 
   const topicOptions = useMemo(
     () => [
@@ -32,6 +35,15 @@ export default function ArticlesFilterClient({ articles, topics }: Props) {
         : articles.filter((a) => a.topic?._id === selected),
     [articles, selected],
   );
+
+  // topic বদলালে page 1-এ ফিরে যাবে
+  function handleTopicChange(value: string) {
+    setSelected(value);
+    setPage(1);
+  }
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const label =
     topicOptions.find((o) => o.value === selected)?.label ?? "সব টপিক";
@@ -51,7 +63,7 @@ export default function ArticlesFilterClient({ articles, topics }: Props) {
           <SelectInput
             options={topicOptions}
             value={selected}
-            onChange={setSelected}
+            onChange={handleTopicChange}
             placeholder="টপিক বেছে নাও"
           />
         </div>
@@ -65,10 +77,19 @@ export default function ArticlesFilterClient({ articles, topics }: Props) {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((a) => (
-            <ArticleCard key={a._id} article={a} />
-          ))}
+        <div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {paginated.map((a) => (
+              <ArticleCard key={a._id} article={a} />
+            ))}
+          </div>
+
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            storageKey="articles-filter-pagination"
+          />
         </div>
       )}
     </div>
