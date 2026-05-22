@@ -52,12 +52,12 @@ export default function Skills() {
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-sm truncate text-(--color-text)">
+                        <h4 className="font-medium text-xs lg:text-sm truncate text-(--color-text)">
                           {skill.name}
                         </h4>
 
                         <span
-                          className={`inline-block mt-1 px-2 py-0.5 rounded text-xs font-medium border ${levelStyles[skill.level]}`}
+                          className={`inline-block mt-1 px-1 lg:px-2 py-0.5 rounded text-[9px] lg:text-xs font-medium border ${levelStyles[skill.level]}`}
                         >
                           {skill.level}
                         </span>
