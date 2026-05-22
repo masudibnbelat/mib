@@ -269,7 +269,7 @@ const ThirdEye = () => {
             className="flex flex-col flex-1"
             style={isDrawMode ? { height: "100vh", overflow: "hidden" } : {}}
           >
-            <div className="flex items-center justify-between gap-2 px-4 pt-20 pb-3">
+            <div className="flex items-center justify-between gap-2  pt-20 pb-3">
               <MobileDropdown />
               {isDrawMode ? (
                 <div
