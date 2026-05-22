@@ -198,7 +198,6 @@ const ProjectSlider = () => {
     100% { transform: translateX(0); }
   }
 
-  /* ✅ animation এখন class-এ, inline style নেই */
   .marquee-forward {
     animation-name: marquee-x;
     animation-duration: var(--marquee-dur);
@@ -212,13 +211,12 @@ const ProjectSlider = () => {
     animation-iteration-count: infinite;
   }
 
-  /* ✅ এখন এটা কাজ করবে */
   .marquee-wrap:hover .marquee-track {
     animation-play-state: paused;
   }
 `}</style>
 
-      <section className="w-full py-8">
+      <section className="w-full py-12">
         <motion.div
           className=" flex justify-center lg:justify-start items-center my-0 md:my-12"
           initial={{ opacity: 0, x: -50 }}

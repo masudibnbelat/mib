@@ -11,27 +11,27 @@ const levelStyles: Record<Skill["level"], string> = {
 
 export default function Skills() {
   return (
-    <section className="py-16 bg-(--color-bg) text-(--color-text)">
+    <section className=" bg-(--color-bg) text-(--color-text)">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-center lg:justify-start items-center gap-3 my-0 md:my-12">
+        <div className="flex justify-center lg:justify-start items-center gap-3 my-0 lg:mb-20">
           <h2 className="text-3xl md:text-5xl audiowide">
             S<span className="text-red-500 mx-1.5">kill</span>s
           </h2>
         </div>
 
-        <div className="space-y-16 mt-10 md:mt-20">
+        <div className="space-y-16 ">
           {skillsData.map((section) => (
             <div
               key={section.title}
-              className="flex flex-col md:flex-row gap-4 md:gap-8"
+              className="flex flex-col lg:flex-row gap-4 md:gap-8"
             >
-              <div className="md:w-10 shrink-0 flex items-start justify-center">
-                <h3 className="text-sm md:text-base font-semibold text-(--color-gray) md:mt-10 md:-rotate-90 md:whitespace-nowrap">
+              <div className="lg:w-10 shrink-0 flex items-start justify-start lg:justify-center">
+                <h3 className="text-sm lg:text-base font-semibold text-(--color-gray) lg:mt-10 lg:-rotate-90 lg:whitespace-nowrap">
                   · {section.title}
                 </h3>
               </div>
 
-              <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="flex-1 grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {section.skills.map((skill) => (
                   <div
                     key={`${section.title}-${skill.name}`}

@@ -1,5 +1,4 @@
 // ThirdEyeTypes.ts
-// ✅ এটা unchanged — কোনো browser API নেই
 
 import type { Dispatch } from "react";
 

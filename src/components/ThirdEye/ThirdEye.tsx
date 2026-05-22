@@ -53,6 +53,8 @@ const ThirdEye = () => {
   const hasSelection = useHasSelection(textareaRef);
   const didRestore = useRef(false);
   const [mounted, setMounted] = useState(false);
+  const [toolbarPortalTarget, setToolbarPortalTarget] =
+    useState<HTMLDivElement | null>(null);
 
   // ── Hydration guard ──
   useEffect(() => {
@@ -245,7 +247,7 @@ const ThirdEye = () => {
               style={isDrawMode ? { overflow: "hidden" } : {}}
             >
               {isDrawMode ? (
-                <DrawingCanvas />
+                <DrawingCanvas mobileToolbarSlot={toolbarPortalTarget} />
               ) : (
                 <Editor textareaRef={textareaRef} outputOpen={!!state.output} />
               )}
@@ -261,6 +263,7 @@ const ThirdEye = () => {
         )}
 
         {/* ── Mobile layout ── */}
+        {/* ── Mobile layout ── */}
         {!isDesktop && (
           <div
             className="flex flex-col flex-1"
@@ -268,8 +271,13 @@ const ThirdEye = () => {
           >
             <div className="flex items-center justify-between gap-2 px-4 pt-20 pb-3">
               <MobileDropdown />
-              {!isDrawMode && (
-                <div className="flex items-center gap-2">
+              {isDrawMode ? (
+                <div
+                  ref={setToolbarPortalTarget}
+                  style={{ flex: 1, minWidth: 0 }}
+                />
+              ) : (
+                <div className="flex items-center gap-2 ml-auto">
                   <FormatButton />
                   <RunButton />
                 </div>
@@ -277,7 +285,7 @@ const ThirdEye = () => {
             </div>
 
             {isDrawMode ? (
-              <DrawingCanvas />
+              <DrawingCanvas mobileToolbarSlot={toolbarPortalTarget} />
             ) : (
               <Editor textareaRef={textareaRef} outputOpen={!!state.output} />
             )}

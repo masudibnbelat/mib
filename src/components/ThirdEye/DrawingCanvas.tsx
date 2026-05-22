@@ -31,6 +31,7 @@ import {
   safeLocalSet,
   safeLocalRemove,
 } from "./ThirdEyeLogic";
+import { createPortal } from "react-dom";
 
 type DrawTool = "pencil" | "pen" | "marker" | "eraser";
 
@@ -411,7 +412,7 @@ const ToolSheet = memo(
                         "max(20px, env(safe-area-inset-bottom, 20px))",
                     }
                   : {
-                      bottom: 90,
+                      top: 70,
                       left: "50%",
                       borderRadius: 16,
                       width: 340,
@@ -675,6 +676,7 @@ CursorOverlay.displayName = "CursorOverlay";
 /* ── Floating Toolbar ── */
 const FloatingToolbar = memo(
   ({
+    inline,
     activeTool,
     activeColor,
     isMobile,
@@ -688,6 +690,7 @@ const FloatingToolbar = memo(
     onDownload,
     onToolChange,
   }: {
+    inline?: boolean;
     activeTool: DrawTool;
     activeColor: string;
     isMobile: boolean;
@@ -734,19 +737,26 @@ const FloatingToolbar = memo(
         }}
         transition={{ type: "spring" as const, stiffness: 400, damping: 28 }}
         style={{
-          position: "absolute",
-          ...(isMobile
+          ...(inline
             ? {
-                bottom: 96,
-                top: "auto",
-                left: 10,
-                transform: "none",
+                position: "relative" as const,
+                flex: 1,
+                minWidth: 0,
+                width: "100%",
+                maxWidth: "none",
               }
             : {
-                bottom: 5,
-                top: "auto",
-                left: "50%",
-                transform: "translateX(-50%)",
+                position: "absolute" as const,
+                ...(isMobile
+                  ? { top: 10, bottom: "auto", left: 10, transform: "none" }
+                  : {
+                      top: 10,
+                      bottom: "auto",
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                    }),
+                width: isMobile ? "calc(100vw - 32px)" : "auto",
+                maxWidth: isMobile ? "calc(100vw - 32px)" : "none",
               }),
           zIndex: 20,
           background: "var(--color-bg)",
@@ -762,8 +772,6 @@ const FloatingToolbar = memo(
             ? "0 4px 24px var(--color-shadow-md)"
             : "0 8px 32px var(--color-shadow-md)",
           pointerEvents: isDrawing ? ("none" as const) : ("auto" as const),
-          width: isMobile ? "calc(100vw - 32px)" : "auto",
-          maxWidth: isMobile ? "calc(100vw - 32px)" : "none",
           boxSizing: "border-box" as const,
         }}
       >
@@ -895,515 +903,549 @@ FloatingToolbar.displayName = "FloatingToolbar";
 /* ════════════════════════════════════════════════
    MAIN CANVAS
    ════════════════════════════════════════════════ */
-export const DrawingCanvas = memo(() => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+export const DrawingCanvas = memo(
+  ({ mobileToolbarSlot }: { mobileToolbarSlot?: HTMLDivElement | null }) => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
 
-  const [activeTool, setActiveTool] = useState<DrawTool>(() => {
-    const saved = safeLocalGet("draw-tool");
-    return (saved as DrawTool) || "pen";
-  });
-  const [activeColor, setActiveColor] = useState<string>(() => {
-    return safeLocalGet("draw-color") || COLORS[0].value;
-  });
-  const [strokeMultiplier, setStrokeMultiplier] = useState<number>(() => {
-    const saved = safeLocalGet("draw-size");
-    return saved ? parseFloat(saved) : 1;
-  });
-
-  const saveTool = useCallback((t: DrawTool) => {
-    setActiveTool(t);
-    safeLocalSet("draw-tool", t);
-  }, []);
-
-  const saveColor = useCallback((c: string) => {
-    setActiveColor(c);
-    safeLocalSet("draw-color", c);
-  }, []);
-
-  const saveSize = useCallback((s: number) => {
-    setStrokeMultiplier(s);
-    safeLocalSet("draw-size", String(s));
-  }, []);
-
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0, visible: false });
-  const [undoCount, setUndoCount] = useState(0);
-  const [redoCount, setRedoCount] = useState(0);
-
-  const currentPath = useRef<Point[]>([]);
-  const undoStack = useRef<ImageData[]>([]);
-  const redoStack = useRef<ImageData[]>([]);
-  const activePointers = useRef<Map<number, { x: number; y: number }>>(
-    new Map(),
-  );
-  const lastPinchDist = useRef<number | null>(null);
-  const isMultiTouch = useRef(false);
-  const twoFingerTapStart = useRef(0);
-  const twoFingerMoved = useRef(false);
-
-  const tool = useMemo(
-    () => TOOLS.find((t) => t.id === activeTool)!,
-    [activeTool],
-  );
-
-  useEffect(() => {
-    if (!isBrowser) return;
-    const check = () => setIsMobile(window.innerWidth < 768);
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
-
-  /* ── Persist canvas to localStorage after each stroke ── */
-  const persistCanvas = useCallback(() => {
-    const c = canvasRef.current;
-    if (!c) return;
-    try {
-      const dataUrl = c.toDataURL("image/png");
-      safeLocalSet("draw-canvas", dataUrl);
-    } catch (err) {
-      console.error(err);
-    }
-  }, []);
-
-  const saveSnapshot = useCallback(() => {
-    const c = canvasRef.current,
-      ctx = c?.getContext("2d");
-    if (!ctx || !c) return;
-    undoStack.current.push(ctx.getImageData(0, 0, c.width, c.height));
-    if (undoStack.current.length > MAX_UNDO) undoStack.current.shift();
-    redoStack.current = [];
-    setUndoCount(undoStack.current.length);
-    setRedoCount(0);
-  }, []);
-
-  const doUndo = useCallback(() => {
-    const c = canvasRef.current,
-      ctx = c?.getContext("2d");
-    if (!ctx || !c || !undoStack.current.length) return;
-    redoStack.current.push(ctx.getImageData(0, 0, c.width, c.height));
-    ctx.putImageData(undoStack.current.pop()!, 0, 0);
-    setUndoCount(undoStack.current.length);
-    setRedoCount(redoStack.current.length);
-    persistCanvas();
-  }, [persistCanvas]);
-
-  const doRedo = useCallback(() => {
-    const c = canvasRef.current,
-      ctx = c?.getContext("2d");
-    if (!ctx || !c || !redoStack.current.length) return;
-    undoStack.current.push(ctx.getImageData(0, 0, c.width, c.height));
-    ctx.putImageData(redoStack.current.pop()!, 0, 0);
-    setUndoCount(undoStack.current.length);
-    setRedoCount(redoStack.current.length);
-    persistCanvas();
-  }, [persistCanvas]);
-
-  useEffect(() => {
-    if (!isBrowser) return;
-    const h = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
-        e.preventDefault();
-        doUndo();
-      }
-      if (
-        (e.ctrlKey || e.metaKey) &&
-        (e.key === "y" || (e.key === "z" && e.shiftKey))
-      ) {
-        e.preventDefault();
-        doRedo();
-      }
-      if (!e.ctrlKey && !e.metaKey && !e.altKey) {
-        switch (e.key.toLowerCase()) {
-          case "p":
-            saveTool("pencil");
-            break;
-          case "b":
-            saveTool("pen");
-            break;
-          case "m":
-            saveTool("marker");
-            break;
-          case "e":
-            saveTool("eraser");
-            break;
-          case "[":
-            saveSize(Math.max(0.3, strokeMultiplier - 0.2));
-            break;
-          case "]":
-            saveSize(Math.min(5, strokeMultiplier + 0.2));
-            break;
-        }
-      }
-    };
-    window.addEventListener("keydown", h);
-    return () => window.removeEventListener("keydown", h);
-  }, [doUndo, doRedo, saveTool, saveSize, strokeMultiplier]);
-
-  /* ── Resize ── */
-  useEffect(() => {
-    if (!isBrowser) return;
-    const canvas = canvasRef.current;
-    const container = containerRef.current;
-    if (!canvas || !container) return;
-    let raf = 0;
-
-    const resize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const rect = container.getBoundingClientRect();
-      const w = Math.floor(rect.width);
-      const h = Math.floor(rect.height);
-      if (w === 0 || h === 0) return;
-      if (canvas.width === w * dpr && canvas.height === h * dpr) return;
-
-      let saved: ImageData | null = null;
-      const ctx = canvas.getContext("2d");
-      if (ctx && canvas.width > 0 && canvas.height > 0) {
-        try {
-          saved = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        } catch {
-          /**/
-        }
-      }
-      const oldW = canvas.width,
-        oldH = canvas.height;
-      canvas.width = w * dpr;
-      canvas.height = h * dpr;
-      canvas.style.width = `${w}px`;
-      canvas.style.height = `${h}px`;
-
-      const nCtx = canvas.getContext("2d")!;
-      nCtx.fillStyle = getCanvasBg();
-      nCtx.fillRect(0, 0, canvas.width, canvas.height);
-
-      if (saved && oldW > 0 && oldH > 0) {
-        const tmp = document.createElement("canvas");
-        tmp.width = oldW;
-        tmp.height = oldH;
-        tmp.getContext("2d")!.putImageData(saved, 0, 0);
-        nCtx.drawImage(tmp, 0, 0, canvas.width, canvas.height);
-      }
-    };
-
-    const debResize = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(resize);
-    };
-    resize();
-    const obs = new ResizeObserver(debResize);
-    obs.observe(container);
-    const onO = () => setTimeout(resize, 200);
-    window.addEventListener("orientationchange", onO);
-    return () => {
-      obs.disconnect();
-      cancelAnimationFrame(raf);
-      window.removeEventListener("orientationchange", onO);
-    };
-  }, []);
-
-  /* ── Fill initial bg + restore saved drawing ── */
-  useEffect(() => {
-    if (!isBrowser) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx || canvas.width === 0) return;
-
-    const restore = () => {
-      const saved = safeLocalGet("draw-canvas");
-      if (saved) {
-        const img = new Image();
-        img.onload = () => {
-          ctx.fillStyle = getCanvasBg();
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        };
-        img.src = saved;
-        return;
-      }
-      ctx.fillStyle = getCanvasBg();
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    };
-
-    if (canvas.width === 0 || canvas.height === 0) {
-      const id = setInterval(() => {
-        if (canvas.width > 0 && canvas.height > 0) {
-          clearInterval(id);
-          restore();
-        }
-      }, 50);
-      return () => clearInterval(id);
-    } else {
-      restore();
-    }
-  }, []);
-
-  /* ── Watch theme changes ── */
-  useEffect(() => {
-    if (!isBrowser) return;
-    const obs = new MutationObserver(() => {
-      // Theme changed — toolbar & sheet auto-update via CSS vars
+    const [activeTool, setActiveTool] = useState<DrawTool>(() => {
+      const saved = safeLocalGet("draw-tool");
+      return (saved as DrawTool) || "pen";
     });
-    obs.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["data-theme"],
+    const [activeColor, setActiveColor] = useState<string>(() => {
+      return safeLocalGet("draw-color") || COLORS[0].value;
     });
-    return () => obs.disconnect();
-  }, []);
+    const [strokeMultiplier, setStrokeMultiplier] = useState<number>(() => {
+      const saved = safeLocalGet("draw-size");
+      return saved ? parseFloat(saved) : 1;
+    });
 
-  const clearCanvas = useCallback(() => {
-    const c = canvasRef.current,
-      ctx = c?.getContext("2d");
-    if (!ctx || !c) return;
-    saveSnapshot();
-    ctx.fillStyle = getCanvasBg();
-    ctx.fillRect(0, 0, c.width, c.height);
-    safeLocalRemove("draw-canvas");
-  }, [saveSnapshot]);
+    const saveTool = useCallback((t: DrawTool) => {
+      setActiveTool(t);
+      safeLocalSet("draw-tool", t);
+    }, []);
 
-  const download = useCallback(() => {
-    const c = canvasRef.current;
-    if (!c || !isBrowser) return;
-    const a = document.createElement("a");
-    a.download = `drawing-${Date.now()}.png`;
-    a.href = c.toDataURL("image/png");
-    a.click();
-  }, []);
+    const saveColor = useCallback((c: string) => {
+      setActiveColor(c);
+      safeLocalSet("draw-color", c);
+    }, []);
 
-  const drawSegment = useCallback(
-    (pts: Point[]) => {
+    const saveSize = useCallback((s: number) => {
+      setStrokeMultiplier(s);
+      safeLocalSet("draw-size", String(s));
+    }, []);
+
+    const [isDrawing, setIsDrawing] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+    const [sheetOpen, setSheetOpen] = useState(false);
+    const [cursorPos, setCursorPos] = useState({ x: 0, y: 0, visible: false });
+    const [undoCount, setUndoCount] = useState(0);
+    const [redoCount, setRedoCount] = useState(0);
+
+    const currentPath = useRef<Point[]>([]);
+    const undoStack = useRef<ImageData[]>([]);
+    const redoStack = useRef<ImageData[]>([]);
+    const activePointers = useRef<Map<number, { x: number; y: number }>>(
+      new Map(),
+    );
+    const lastPinchDist = useRef<number | null>(null);
+    const isMultiTouch = useRef(false);
+    const twoFingerTapStart = useRef(0);
+    const twoFingerMoved = useRef(false);
+
+    const tool = useMemo(
+      () => TOOLS.find((t) => t.id === activeTool)!,
+      [activeTool],
+    );
+
+    useEffect(() => {
+      if (!isBrowser) return;
+      const check = () => setIsMobile(window.innerWidth < 768);
+      check();
+      window.addEventListener("resize", check);
+      return () => window.removeEventListener("resize", check);
+    }, []);
+
+    /* ── Persist canvas to localStorage after each stroke ── */
+    const persistCanvas = useCallback(() => {
+      const c = canvasRef.current;
+      if (!c) return;
+      try {
+        const dataUrl = c.toDataURL("image/png");
+        safeLocalSet("draw-canvas", dataUrl);
+      } catch (err) {
+        console.error(err);
+      }
+    }, []);
+
+    const saveSnapshot = useCallback(() => {
       const c = canvasRef.current,
         ctx = c?.getContext("2d");
-      if (!ctx || pts.length < 2) return;
-      drawSmoothStroke(
-        ctx,
-        pts,
-        tool,
-        activeColor,
-        strokeMultiplier,
-        activeTool === "eraser",
-      );
-    },
-    [activeTool, activeColor, tool, strokeMultiplier],
-  );
+      if (!ctx || !c) return;
+      undoStack.current.push(ctx.getImageData(0, 0, c.width, c.height));
+      if (undoStack.current.length > MAX_UNDO) undoStack.current.shift();
+      redoStack.current = [];
+      setUndoCount(undoStack.current.length);
+      setRedoCount(0);
+    }, []);
 
-  const onPointerDown = useCallback(
-    (e: React.PointerEvent<HTMLCanvasElement>) => {
-      if (sheetOpen) return;
-      const canvas = e.currentTarget;
-      canvas.setPointerCapture(e.pointerId);
-      activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const doUndo = useCallback(() => {
+      const c = canvasRef.current,
+        ctx = c?.getContext("2d");
+      if (!ctx || !c || !undoStack.current.length) return;
+      redoStack.current.push(ctx.getImageData(0, 0, c.width, c.height));
+      ctx.putImageData(undoStack.current.pop()!, 0, 0);
+      setUndoCount(undoStack.current.length);
+      setRedoCount(redoStack.current.length);
+      persistCanvas();
+    }, [persistCanvas]);
 
-      if (activePointers.current.size === 2) {
-        isMultiTouch.current = true;
-        twoFingerTapStart.current = Date.now();
-        twoFingerMoved.current = false;
-        currentPath.current = [];
-        setIsDrawing(false);
-        return;
-      }
-      if (activePointers.current.size > 2) return;
+    const doRedo = useCallback(() => {
+      const c = canvasRef.current,
+        ctx = c?.getContext("2d");
+      if (!ctx || !c || !redoStack.current.length) return;
+      undoStack.current.push(ctx.getImageData(0, 0, c.width, c.height));
+      ctx.putImageData(redoStack.current.pop()!, 0, 0);
+      setUndoCount(undoStack.current.length);
+      setRedoCount(redoStack.current.length);
+      persistCanvas();
+    }, [persistCanvas]);
 
-      saveSnapshot();
-      const pt = getPointerPos(e, canvas);
-      currentPath.current = [pt];
-      setIsDrawing(true);
-
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.save();
-        if (activeTool === "eraser") {
-          ctx.globalCompositeOperation = "destination-out";
-          ctx.globalAlpha = 1;
-        } else {
-          ctx.globalCompositeOperation = "source-over";
-          ctx.globalAlpha = tool.opacity;
+    useEffect(() => {
+      if (!isBrowser) return;
+      const h = (e: KeyboardEvent) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+          e.preventDefault();
+          doUndo();
         }
-        ctx.fillStyle = activeTool === "eraser" ? "#000" : activeColor;
-        ctx.beginPath();
-        ctx.arc(
-          pt.x,
-          pt.y,
-          Math.max((tool.baseWidth * strokeMultiplier * pt.pressure) / 2, 0.5),
-          0,
-          Math.PI * 2,
-        );
-        ctx.fill();
-        ctx.restore();
-      }
-    },
-    [sheetOpen, saveSnapshot, activeTool, activeColor, tool, strokeMultiplier],
-  );
+        if (
+          (e.ctrlKey || e.metaKey) &&
+          (e.key === "y" || (e.key === "z" && e.shiftKey))
+        ) {
+          e.preventDefault();
+          doRedo();
+        }
+        if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+          switch (e.key.toLowerCase()) {
+            case "p":
+              saveTool("pencil");
+              break;
+            case "b":
+              saveTool("pen");
+              break;
+            case "m":
+              saveTool("marker");
+              break;
+            case "e":
+              saveTool("eraser");
+              break;
+            case "[":
+              saveSize(Math.max(0.3, strokeMultiplier - 0.2));
+              break;
+            case "]":
+              saveSize(Math.min(5, strokeMultiplier + 0.2));
+              break;
+          }
+        }
+      };
+      window.addEventListener("keydown", h);
+      return () => window.removeEventListener("keydown", h);
+    }, [doUndo, doRedo, saveTool, saveSize, strokeMultiplier]);
 
-  const onPointerMove = useCallback(
-    (e: React.PointerEvent<HTMLCanvasElement>) => {
-      const canvas = e.currentTarget;
-      activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      if (!isMobile) {
-        const r = canvas.getBoundingClientRect();
-        setCursorPos({
-          x: e.clientX - r.left,
-          y: e.clientY - r.top,
-          visible: true,
-        });
+    /* ── Resize ── */
+    useEffect(() => {
+      if (!isBrowser) return;
+      const canvas = canvasRef.current;
+      const container = containerRef.current;
+      if (!canvas || !container) return;
+      let raf = 0;
+
+      const resize = () => {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const rect = container.getBoundingClientRect();
+        const w = Math.floor(rect.width);
+        const h = Math.floor(rect.height);
+        if (w === 0 || h === 0) return;
+        if (canvas.width === w * dpr && canvas.height === h * dpr) return;
+
+        let saved: ImageData | null = null;
+        const ctx = canvas.getContext("2d");
+        if (ctx && canvas.width > 0 && canvas.height > 0) {
+          try {
+            saved = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          } catch {
+            /**/
+          }
+        }
+        const oldW = canvas.width,
+          oldH = canvas.height;
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        canvas.style.width = `${w}px`;
+        canvas.style.height = `${h}px`;
+
+        const nCtx = canvas.getContext("2d")!;
+        nCtx.fillStyle = getCanvasBg();
+        nCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+        if (saved && oldW > 0 && oldH > 0) {
+          const tmp = document.createElement("canvas");
+          tmp.width = oldW;
+          tmp.height = oldH;
+          tmp.getContext("2d")!.putImageData(saved, 0, 0);
+          nCtx.drawImage(tmp, 0, 0, canvas.width, canvas.height);
+        }
+      };
+
+      const debResize = () => {
+        cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(resize);
+      };
+      resize();
+      const obs = new ResizeObserver(debResize);
+      obs.observe(container);
+      const onO = () => setTimeout(resize, 200);
+      window.addEventListener("orientationchange", onO);
+      return () => {
+        obs.disconnect();
+        cancelAnimationFrame(raf);
+        window.removeEventListener("orientationchange", onO);
+      };
+    }, []);
+
+    /* ── Fill initial bg + restore saved drawing ── */
+    useEffect(() => {
+      if (!isBrowser) return;
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      if (!ctx || canvas.width === 0) return;
+
+      const restore = () => {
+        const saved = safeLocalGet("draw-canvas");
+        if (saved) {
+          const img = new Image();
+          img.onload = () => {
+            ctx.fillStyle = getCanvasBg();
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          };
+          img.src = saved;
+          return;
+        }
+        ctx.fillStyle = getCanvasBg();
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      };
+
+      if (canvas.width === 0 || canvas.height === 0) {
+        const id = setInterval(() => {
+          if (canvas.width > 0 && canvas.height > 0) {
+            clearInterval(id);
+            restore();
+          }
+        }, 50);
+        return () => clearInterval(id);
+      } else {
+        restore();
       }
-      if (activePointers.current.size === 2) {
-        twoFingerMoved.current = true;
-        const pts = Array.from(activePointers.current.values());
-        const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-        if (lastPinchDist.current !== null) {
-          setStrokeMultiplier((s) => {
-            const next = Math.max(
-              0.3,
-              Math.min(5, s + (dist - lastPinchDist.current!) / 150),
-            );
-            safeLocalSet("draw-size", String(next));
-            return next;
+    }, []);
+
+    /* ── Watch theme changes ── */
+    useEffect(() => {
+      if (!isBrowser) return;
+      const obs = new MutationObserver(() => {
+        // Theme changed — toolbar & sheet auto-update via CSS vars
+      });
+      obs.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["data-theme"],
+      });
+      return () => obs.disconnect();
+    }, []);
+
+    const clearCanvas = useCallback(() => {
+      const c = canvasRef.current,
+        ctx = c?.getContext("2d");
+      if (!ctx || !c) return;
+      saveSnapshot();
+      ctx.fillStyle = getCanvasBg();
+      ctx.fillRect(0, 0, c.width, c.height);
+      safeLocalRemove("draw-canvas");
+    }, [saveSnapshot]);
+
+    const download = useCallback(() => {
+      const c = canvasRef.current;
+      if (!c || !isBrowser) return;
+      const a = document.createElement("a");
+      a.download = `drawing-${Date.now()}.png`;
+      a.href = c.toDataURL("image/png");
+      a.click();
+    }, []);
+
+    const drawSegment = useCallback(
+      (pts: Point[]) => {
+        const c = canvasRef.current,
+          ctx = c?.getContext("2d");
+        if (!ctx || pts.length < 2) return;
+        drawSmoothStroke(
+          ctx,
+          pts,
+          tool,
+          activeColor,
+          strokeMultiplier,
+          activeTool === "eraser",
+        );
+      },
+      [activeTool, activeColor, tool, strokeMultiplier],
+    );
+
+    const onPointerDown = useCallback(
+      (e: React.PointerEvent<HTMLCanvasElement>) => {
+        if (sheetOpen) return;
+        const canvas = e.currentTarget;
+        canvas.setPointerCapture(e.pointerId);
+        activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+        if (activePointers.current.size === 2) {
+          isMultiTouch.current = true;
+          twoFingerTapStart.current = Date.now();
+          twoFingerMoved.current = false;
+          currentPath.current = [];
+          setIsDrawing(false);
+          return;
+        }
+        if (activePointers.current.size > 2) return;
+
+        saveSnapshot();
+        const pt = getPointerPos(e, canvas);
+        currentPath.current = [pt];
+        setIsDrawing(true);
+
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.save();
+          if (activeTool === "eraser") {
+            ctx.globalCompositeOperation = "destination-out";
+            ctx.globalAlpha = 1;
+          } else {
+            ctx.globalCompositeOperation = "source-over";
+            ctx.globalAlpha = tool.opacity;
+          }
+          ctx.fillStyle = activeTool === "eraser" ? "#000" : activeColor;
+          ctx.beginPath();
+          ctx.arc(
+            pt.x,
+            pt.y,
+            Math.max(
+              (tool.baseWidth * strokeMultiplier * pt.pressure) / 2,
+              0.5,
+            ),
+            0,
+            Math.PI * 2,
+          );
+          ctx.fill();
+          ctx.restore();
+        }
+      },
+      [
+        sheetOpen,
+        saveSnapshot,
+        activeTool,
+        activeColor,
+        tool,
+        strokeMultiplier,
+      ],
+    );
+
+    const onPointerMove = useCallback(
+      (e: React.PointerEvent<HTMLCanvasElement>) => {
+        const canvas = e.currentTarget;
+        activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (!isMobile) {
+          const r = canvas.getBoundingClientRect();
+          setCursorPos({
+            x: e.clientX - r.left,
+            y: e.clientY - r.top,
+            visible: true,
           });
         }
-        lastPinchDist.current = dist;
-        return;
-      }
-      if (!isDrawing || isMultiTouch.current) return;
-      const pt = getPointerPos(e, canvas);
-      currentPath.current.push(pt);
-      drawSegment(currentPath.current.slice(-6));
-    },
-    [isDrawing, isMobile, drawSegment],
-  );
+        if (activePointers.current.size === 2) {
+          twoFingerMoved.current = true;
+          const pts = Array.from(activePointers.current.values());
+          const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+          if (lastPinchDist.current !== null) {
+            setStrokeMultiplier((s) => {
+              const next = Math.max(
+                0.3,
+                Math.min(5, s + (dist - lastPinchDist.current!) / 150),
+              );
+              safeLocalSet("draw-size", String(next));
+              return next;
+            });
+          }
+          lastPinchDist.current = dist;
+          return;
+        }
+        if (!isDrawing || isMultiTouch.current) return;
+        const pt = getPointerPos(e, canvas);
+        currentPath.current.push(pt);
+        drawSegment(currentPath.current.slice(-6));
+      },
+      [isDrawing, isMobile, drawSegment],
+    );
 
-  const onPointerUp = useCallback(
-    (e: React.PointerEvent<HTMLCanvasElement>) => {
-      activePointers.current.delete(e.pointerId);
-      if (isMultiTouch.current && activePointers.current.size === 0) {
-        if (
-          !twoFingerMoved.current &&
-          Date.now() - twoFingerTapStart.current < 400
-        )
-          doUndo();
-        isMultiTouch.current = false;
-        lastPinchDist.current = null;
-      }
-      if (activePointers.current.size === 0) {
-        setIsDrawing(false);
-        currentPath.current = [];
-        lastPinchDist.current = null;
-        isMultiTouch.current = false;
-        persistCanvas();
-      }
-    },
-    [doUndo, persistCanvas],
-  );
+    const onPointerUp = useCallback(
+      (e: React.PointerEvent<HTMLCanvasElement>) => {
+        activePointers.current.delete(e.pointerId);
+        if (isMultiTouch.current && activePointers.current.size === 0) {
+          if (
+            !twoFingerMoved.current &&
+            Date.now() - twoFingerTapStart.current < 400
+          )
+            doUndo();
+          isMultiTouch.current = false;
+          lastPinchDist.current = null;
+        }
+        if (activePointers.current.size === 0) {
+          setIsDrawing(false);
+          currentPath.current = [];
+          lastPinchDist.current = null;
+          isMultiTouch.current = false;
+          persistCanvas();
+        }
+      },
+      [doUndo, persistCanvas],
+    );
 
-  return (
-    <div
-      ref={containerRef}
-      style={{
-        flex: "1 1 0%",
-        position: "relative",
-        overflow: "visible",
-        touchAction: "none",
-        overscrollBehavior: "none",
-        width: "100%",
-        minHeight: 0,
-        height: "100%",
-        background: "var(--color-bg)",
-      }}
-    >
-      <canvas
-        ref={canvasRef}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerLeave={(e) => {
-          onPointerUp(e);
-          setCursorPos((p) => ({ ...p, visible: false }));
-        }}
-        onPointerCancel={onPointerUp}
-        onContextMenu={(e) => e.preventDefault()}
+    return (
+      <div
+        ref={containerRef}
         style={{
-          display: "block",
-          width: "100%",
-          height: "100%",
+          flex: "1 1 0%",
+          position: "relative",
+          overflow: "visible",
           touchAction: "none",
-          cursor: isMobile ? "default" : "none",
+          overscrollBehavior: "none",
+          width: "100%",
+          minHeight: 0,
+          height: "100%",
+          background: "var(--color-bg)",
         }}
-      />
-
-      {!isMobile && (
-        <CursorOverlay
-          x={cursorPos.x}
-          y={cursorPos.y}
-          visible={cursorPos.visible && !sheetOpen}
-          size={tool.baseWidth * strokeMultiplier}
-          tool={activeTool}
-          color={activeColor}
+      >
+        <canvas
+          ref={canvasRef}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerLeave={(e) => {
+            onPointerUp(e);
+            setCursorPos((p) => ({ ...p, visible: false }));
+          }}
+          onPointerCancel={onPointerUp}
+          onContextMenu={(e) => e.preventDefault()}
+          style={{
+            display: "block",
+            width: "100%",
+            height: "100%",
+            touchAction: "none",
+            cursor: isMobile ? "default" : "none",
+          }}
         />
-      )}
 
-      <FloatingToolbar
-        activeTool={activeTool}
-        activeColor={activeColor}
-        isMobile={isMobile}
-        isDrawing={isDrawing}
-        canUndo={undoCount > 0}
-        canRedo={redoCount > 0}
-        onOpenSheet={() => setSheetOpen(true)}
-        onUndo={doUndo}
-        onRedo={doRedo}
-        onClear={clearCanvas}
-        onDownload={download}
-        onToolChange={saveTool}
-      />
-
-      <ToolSheet
-        isOpen={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        isMobile={isMobile}
-        activeTool={activeTool}
-        activeColor={activeColor}
-        strokeMultiplier={strokeMultiplier}
-        onToolChange={saveTool}
-        onColorChange={saveColor}
-        onSizeChange={saveSize}
-      />
-
-      <AnimatePresence>
-        {!isDrawing && !sheetOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.4 }}
-            exit={{ opacity: 0 }}
-            transition={{ delay: 0.8, duration: 0.4 }}
-            style={{
-              position: "absolute",
-              ...(isMobile
-                ? { bottom: 20, top: "auto" }
-                : { bottom: 80, top: "auto" }),
-              left: "50%",
-              transform: "translateX(-50%)",
-              color: "var(--color-gray)",
-              fontSize: 11,
-              fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-              pointerEvents: "none",
-              textAlign: "center",
-              whiteSpace: "nowrap",
-              maxWidth: "90vw",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {isMobile
-              ? "pinch → resize · 2-finger tap → undo"
-              : "p/b/m/e → tools · [ ] → size · ctrl+z/y → undo/redo"}
-          </motion.div>
+        {!isMobile && (
+          <CursorOverlay
+            x={cursorPos.x}
+            y={cursorPos.y}
+            visible={cursorPos.visible && !sheetOpen}
+            size={tool.baseWidth * strokeMultiplier}
+            tool={activeTool}
+            color={activeColor}
+          />
         )}
-      </AnimatePresence>
-    </div>
-  );
-});
+
+        {/* portal mode (mobile + slot আছে) */}
+        {isMobile && mobileToolbarSlot ? (
+          createPortal(
+            <FloatingToolbar
+              inline
+              activeTool={activeTool}
+              activeColor={activeColor}
+              isMobile={isMobile}
+              isDrawing={isDrawing}
+              canUndo={undoCount > 0}
+              canRedo={redoCount > 0}
+              onOpenSheet={() => setSheetOpen(true)}
+              onUndo={doUndo}
+              onRedo={doRedo}
+              onClear={clearCanvas}
+              onDownload={download}
+              onToolChange={saveTool}
+            />,
+            mobileToolbarSlot,
+          )
+        ) : (
+          <FloatingToolbar
+            activeTool={activeTool}
+            activeColor={activeColor}
+            isMobile={isMobile}
+            isDrawing={isDrawing}
+            canUndo={undoCount > 0}
+            canRedo={redoCount > 0}
+            onOpenSheet={() => setSheetOpen(true)}
+            onUndo={doUndo}
+            onRedo={doRedo}
+            onClear={clearCanvas}
+            onDownload={download}
+            onToolChange={saveTool}
+          />
+        )}
+
+        <ToolSheet
+          isOpen={sheetOpen}
+          onClose={() => setSheetOpen(false)}
+          isMobile={isMobile}
+          activeTool={activeTool}
+          activeColor={activeColor}
+          strokeMultiplier={strokeMultiplier}
+          onToolChange={saveTool}
+          onColorChange={saveColor}
+          onSizeChange={saveSize}
+        />
+
+        <AnimatePresence>
+          {!isDrawing && !sheetOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.4 }}
+              exit={{ opacity: 0 }}
+              transition={{ delay: 0.8, duration: 0.4 }}
+              style={{
+                position: "absolute",
+                ...(isMobile
+                  ? { top: 70, bottom: "auto" }
+                  : { top: 70, bottom: "auto" }),
+                left: "50%",
+                transform: "translateX(-50%)",
+                color: "var(--color-gray)",
+                fontSize: 11,
+                fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                pointerEvents: "none",
+                textAlign: "center",
+                whiteSpace: "nowrap",
+                maxWidth: "90vw",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {isMobile
+                ? "pinch → resize · 2-finger tap → undo"
+                : "p/b/m/e → tools · [ ] → size · ctrl+z/y → undo/redo"}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  },
+);
 
 DrawingCanvas.displayName = "DrawingCanvas";
