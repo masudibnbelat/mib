@@ -15,7 +15,7 @@ export default function Skills() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-center lg:justify-start items-center gap-3 my-0 lg:mb-20">
           <h2 className="text-3xl md:text-5xl audiowide">
-            S<span className="text-red-500 mx-1.5">kill</span>s
+            S<span className="text-red-500">kill</span>s
           </h2>
         </div>
 

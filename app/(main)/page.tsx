@@ -1,5 +1,7 @@
+// app/page.tsx
+
 import { Hero } from "@/src/components/Hero/Hero";
-import ProjectSlider from "@/src/components/Projects/ProjectSlider";
+import ProjectSliderSection from "@/src/components/Projects/ProjectSliderSection";
 import Services from "@/src/components/services/Services";
 import Skills from "@/src/components/Skill/Skill";
 
@@ -9,7 +11,7 @@ export default function Home() {
       <Hero />
       <Services />
       <Skills />
-      <ProjectSlider />
+      <ProjectSliderSection />
     </main>
   );
 }

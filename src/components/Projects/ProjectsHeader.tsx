@@ -1,3 +1,5 @@
+// src/components/Projects/ProjectsHeader.tsx
+
 "use client";
 
 import Image, { type StaticImageData } from "next/image";

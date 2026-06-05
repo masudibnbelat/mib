@@ -1,4 +1,6 @@
 // src/components/projects/ProjectsBody.tsx
+
+// src/components/Projects/ProjectsBody.tsx
 "use client";
 
 import { startTransition, useCallback, useEffect, useState } from "react";
@@ -34,11 +36,14 @@ const fetchProjects = async (
     },
     signal,
   });
-
   return res.data;
 };
 
-const ProjectsBody = () => {
+interface Props {
+  initialData: ApiResponse; // ✅ server থেকে আসবে
+}
+
+const ProjectsBody = ({ initialData }: Props) => {
   const [page, setPage] = useState(1);
   const [filter, setFilter] = useState<FilterType>("all");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -56,25 +61,33 @@ const ProjectsBody = () => {
     [queryClient],
   );
 
-  const { data, isLoading, isFetching, isError, error, refetch } =
-    useQuery<ApiResponse>({
-      queryKey: ["projects", filter, page],
-      queryFn: ({ signal }) => fetchProjects(filter, page, signal),
-      placeholderData: keepPreviousData,
-      staleTime: STALE_TIME,
-      gcTime: GC_TIME,
-      retry: 1,
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
-    });
+  const { data, isFetching, isError, error, refetch } = useQuery<ApiResponse>({
+    queryKey: ["projects", filter, page],
+    queryFn: ({ signal }) => fetchProjects(filter, page, signal),
+
+    initialData: filter === "all" && page === 1 ? initialData : undefined,
+    initialDataUpdatedAt:
+      // eslint-disable-next-line react-hooks/purity
+      filter === "all" && page === 1 ? Date.now() : undefined,
+    placeholderData: keepPreviousData,
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
+    retry: 1,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
 
   const projects = data?.data ?? [];
   const meta = data?.meta;
 
+  // ✅ initialData আসার সাথে সাথে cache এ set করো
+  useEffect(() => {
+    queryClient.setQueryData(["projects", "all", 1], initialData);
+  }, [initialData, queryClient]);
+
   const handleFilterChange = useCallback(
     (nextFilter: FilterType) => {
       if (nextFilter === filter) return;
-
       startTransition(() => {
         setFilter(nextFilter);
         setPage(1);
@@ -88,7 +101,6 @@ const ProjectsBody = () => {
       if (nextPage === page) return;
       if (nextPage < 1) return;
       if (meta && nextPage > meta.totalPages) return;
-
       startTransition(() => {
         setPage(nextPage);
       });
@@ -104,67 +116,45 @@ const ProjectsBody = () => {
     setSelectedProject(null);
   }, []);
 
+  // ✅ Next/prev page prefetch
   useEffect(() => {
     if (!meta?.totalPages) return;
-
     const nextPage = page + 1;
     const prevPage = page - 1;
-
-    if (nextPage <= meta.totalPages) {
-      void prefetchProjects(filter, nextPage);
-    }
-
-    if (prevPage >= 1) {
-      void prefetchProjects(filter, prevPage);
-    }
+    if (nextPage <= meta.totalPages) void prefetchProjects(filter, nextPage);
+    if (prevPage >= 1) void prefetchProjects(filter, prevPage);
   }, [page, filter, meta?.totalPages, prefetchProjects]);
 
+  // ✅ Other filters prefetch (delay দিয়ে)
   useEffect(() => {
     const timer = window.setTimeout(() => {
       FILTERS.map((item) => item.value)
         .filter((value) => value !== filter)
-        .forEach((value) => {
-          void prefetchProjects(value, 1);
-        });
-    }, 150);
-
+        .forEach((value) => void prefetchProjects(value, 1));
+    }, 300);
     return () => window.clearTimeout(timer);
   }, [filter, prefetchProjects]);
 
-  const showInitialLoader = isLoading && !data;
-
   return (
-    <section className="mx-auto  px-4 lg:px-0.5 py-8">
+    <section className="mx-auto px-4 lg:px-0.5 py-8">
       <div className="mb-6 flex flex-col lg:flex-row gap-4 justify-center lg:justify-between">
         <div>
           <h2 className="text-4xl lg:text-5xl font-bold text-(--color-text)">
             Projects
           </h2>
-
           {meta && (
             <p className="mt-1 text-sm text-(--color-gray)">
               Total {meta.total} projects
             </p>
           )}
         </div>
-
         <ProjectFilter value={filter} onChange={handleFilterChange} />
       </div>
 
       <div className="relative min-h-80">
-        <AnimatePresence mode="wait">
-          {showInitialLoader && (
-            <motion.div
-              key="loading"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <Loader />
-            </motion.div>
-          )}
-
-          {!showInitialLoader && isError && (
+        {/* ✅ mode="sync" — exit animation wait করবে না, lag কমবে */}
+        <AnimatePresence mode="sync">
+          {isError && (
             <motion.div
               key="error"
               initial={{ opacity: 0, y: 8 }}
@@ -173,11 +163,9 @@ const ProjectsBody = () => {
               className="flex flex-col items-center justify-center gap-4 py-24"
             >
               <AlertCircle className="h-8 w-8 text-rose-500" />
-
               <p className="bangla text-sm text-(--color-gray)">
                 {(error as Error)?.message ?? "কিছু একটা সমস্যা হয়েছে"}
               </p>
-
               <button
                 type="button"
                 onClick={() => refetch()}
@@ -188,7 +176,7 @@ const ProjectsBody = () => {
             </motion.div>
           )}
 
-          {!showInitialLoader && !isError && projects.length === 0 && (
+          {!isError && projects.length === 0 && (
             <motion.div
               key="empty"
               initial={{ opacity: 0, y: 8 }}
@@ -203,12 +191,14 @@ const ProjectsBody = () => {
             </motion.div>
           )}
 
-          {!showInitialLoader && !isError && projects.length > 0 && (
+          {!isError && projects.length > 0 && (
             <motion.div
               key={`${filter}-${page}`}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              // ✅ transition duration কমিয়ে দাও
+              transition={{ duration: 0.15 }}
               className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
             >
               {projects.map((project, i) => (
@@ -223,14 +213,12 @@ const ProjectsBody = () => {
           )}
         </AnimatePresence>
 
-        {isFetching &&
-          !showInitialLoader &&
-          !isError &&
-          projects.length > 0 && (
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-3xl bg-(--color-bg)/35 backdrop-blur-[2px]">
-              <Loader />
-            </div>
-          )}
+        {/* ✅ Subtle overlay — full block না করে */}
+        {isFetching && projects.length > 0 && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-3xl bg-(--color-bg)/20 backdrop-blur-[1px] transition-opacity duration-200">
+            <Loader />
+          </div>
+        )}
       </div>
 
       {meta && meta.totalPages > 1 && (
