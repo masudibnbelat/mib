@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, X, Download, Loader2 } from "lucide-react";
+import { ArrowRight, X, Download, Loader2, FileText } from "lucide-react";
 
 const FILE_ID = "1mGJACD7a9BA9OTanbN67kFIc8EZtGoZS";
 const PREVIEW_URL = `https://drive.google.com/file/d/${FILE_ID}/preview`;
@@ -9,18 +9,9 @@ const DOWNLOAD_URL = `https://drive.google.com/uc?export=download&id=${FILE_ID}`
 export const HeroButton = () => {
   const [open, setOpen] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [iframeLoaded, setIframeLoaded] = useState(false);
 
-  useEffect(() => {
-    const iframe = document.createElement("iframe");
-    iframe.src = PREVIEW_URL;
-    iframe.style.display = "none";
-    document.body.appendChild(iframe);
-    return () => {
-      document.body.removeChild(iframe);
-    };
-  }, []);
-
-  // body scroll lock
+  // Body scroll lock - only when modal is open
   useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden";
@@ -40,44 +31,43 @@ export const HeroButton = () => {
     if (downloading) return;
     setDownloading(true);
 
-    const iframe = document.createElement("iframe");
-    iframe.style.display = "none";
-    iframe.src = DOWNLOAD_URL;
-    document.body.appendChild(iframe);
+    // Create temporary link instead of iframe
+    const link = document.createElement("a");
+    link.href = DOWNLOAD_URL;
+    link.download = "resume.pdf";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 
     setTimeout(() => {
-      document.body.removeChild(iframe);
       setDownloading(false);
-    }, 4000);
+    }, 2000);
   };
 
   return (
     <>
-      <motion.div
-        className="flex flex-wrap gap-4"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.8 }}
-      >
+      {/* Remove animation delay for better interaction time */}
+      <div className="flex flex-wrap gap-4">
         <motion.button
-          className="group px-6 py-3 rounded bg-(--color-bg) text-(--color-text) border border-(--color-text) font-medium flex items-center gap-2 transition-shadow"
+          className="group px-6 py-3 rounded bg-(--color-bg) text-(--color-text) border border-(--color-text) font-medium flex items-center gap-2 transition-shadow hover:shadow-lg"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => setOpen(true)}
         >
+          <FileText className="w-4 h-4" />
           Resume
           <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
         </motion.button>
 
         <motion.button
-          className="px-6 py-3 rounded bg-(--color-text) text-(--color-bg) font-medium transition-colors"
+          className="px-6 py-3 rounded bg-(--color-text) text-(--color-bg) font-medium transition-all hover:shadow-lg"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={scrollToContact}
         >
           Contact Me
         </motion.button>
-      </motion.div>
+      </div>
 
       <AnimatePresence>
         {open && (
@@ -88,28 +78,28 @@ export const HeroButton = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.25 }}
+              transition={{ duration: 0.2 }}
               onClick={() => setOpen(false)}
             />
 
-            {/* Modal — full width, small vertical inset */}
+            {/* Modal */}
             <motion.div
-              className="fixed inset-0 z-50 flex flex-col bg-(--color-bg)"
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 40 }}
-              transition={{ type: "spring", damping: 28, stiffness: 320 }}
+              className="fixed inset-4 md:inset-8 z-50 flex flex-col bg-(--color-bg) rounded-lg shadow-2xl"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
             >
               {/* Header */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-(--color-text)/10 shrink-0">
                 <span className="font-semibold text-(--color-text) tracking-wide">
-                  Resume
+                  Resume Preview
                 </span>
 
                 <div className="flex items-center gap-3">
                   {/* Download Button */}
                   <motion.button
-                    className="relative flex items-center gap-2 px-4 py-1.5 rounded-full bg-(--color-text) text-(--color-bg) text-sm font-medium overflow-hidden"
+                    className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-(--color-text) text-(--color-bg) text-sm font-medium disabled:opacity-50"
                     whileHover={{ scale: 1.04 }}
                     whileTap={{ scale: 0.96 }}
                     onClick={handleDownload}
@@ -120,10 +110,9 @@ export const HeroButton = () => {
                         <motion.span
                           key="loading"
                           className="flex items-center gap-2"
-                          initial={{ opacity: 0, y: 6 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -6 }}
-                          transition={{ duration: 0.2 }}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
                         >
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
                           Downloading...
@@ -132,10 +121,9 @@ export const HeroButton = () => {
                         <motion.span
                           key="idle"
                           className="flex items-center gap-2"
-                          initial={{ opacity: 0, y: 6 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -6 }}
-                          transition={{ duration: 0.2 }}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
                         >
                           <Download className="w-3.5 h-3.5" />
                           Download
@@ -146,9 +134,9 @@ export const HeroButton = () => {
 
                   {/* Close Button */}
                   <motion.button
-                    className="relative flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500 text-(--color-text) text-sm font-medium overflow-hidden"
-                    whileHover={{ scale: 1.1, backgroundColor: "#ef4444" }}
-                    whileTap={{ scale: 0.9 }}
+                    className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500 hover:bg-red-600 text-white text-sm font-medium"
+                    whileHover={{ scale: 1.04 }}
+                    whileTap={{ scale: 0.96 }}
                     onClick={() => setOpen(false)}
                   >
                     <X className="w-4 h-4" />
@@ -157,12 +145,24 @@ export const HeroButton = () => {
                 </div>
               </div>
 
-              {/* PDF */}
-              <iframe
-                src={PREVIEW_URL}
-                className="flex-1 w-full"
-                allow="autoplay"
-              />
+              {/* PDF Container */}
+              <div className="relative flex-1 w-full bg-gray-100 dark:bg-gray-900">
+                {/* Loading State */}
+                {!iframeLoaded && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Loader2 className="w-8 h-8 animate-spin text-(--color-text)/50" />
+                  </div>
+                )}
+
+                {/* Iframe - only load when modal opens */}
+                <iframe
+                  src={PREVIEW_URL}
+                  className="w-full h-full"
+                  allow="autoplay"
+                  onLoad={() => setIframeLoaded(true)}
+                  loading="lazy"
+                />
+              </div>
             </motion.div>
           </div>
         )}
