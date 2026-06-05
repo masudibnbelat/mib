@@ -1,6 +1,7 @@
+// src/components/Articles/ArticlesFilterClient.tsx
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Inbox } from "lucide-react";
 import type { TopicData } from "@/src/types/Topic";
 import type { ArticleData } from "@/src/types/article";
@@ -36,11 +37,11 @@ export default function ArticlesFilterClient({ articles, topics }: Props) {
     [articles, selected],
   );
 
-  // topic বদলালে page 1-এ ফিরে যাবে
-  function handleTopicChange(value: string) {
+  // ✅ useCallback দিয়ে wrap করো
+  const handleTopicChange = useCallback((value: string) => {
     setSelected(value);
     setPage(1);
-  }
+  }, []);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -84,12 +85,14 @@ export default function ArticlesFilterClient({ articles, topics }: Props) {
             ))}
           </div>
 
-          <Pagination
-            currentPage={page}
-            totalPages={totalPages}
-            onPageChange={setPage}
-            storageKey="articles-filter-pagination"
-          />
+          {totalPages > 1 && (
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              storageKey="articles-filter-pagination"
+            />
+          )}
         </div>
       )}
     </div>

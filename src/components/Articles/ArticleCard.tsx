@@ -1,12 +1,12 @@
+// src/components/Articles/ArticleCard.tsx
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, Calendar, Clock3, Eye, Folder } from "lucide-react";
-import { useMemo } from "react";
+import { memo } from "react";
 
 import LikeButton from "./LikeButton";
 import ShareButton from "./ShareButton";
 import { ArticleData } from "@/src/types/article";
-import { renderToHtml } from "@/src/Utility/editor-renderer";
 import TimeAgo from "../common/TimeAgo";
 
 interface Props {
@@ -14,29 +14,26 @@ interface Props {
   onRefetch?: () => void;
 }
 
-export default function ArticleCard({ article }: Props) {
+// ✅ memo wrapper দিয়ে re-render কমাও
+const ArticleCard = memo(function ArticleCard({ article }: Props) {
   const date = new Date(article.createdAt).toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",
     day: "numeric",
   });
 
-  // Raw text for reading time (strip markdown markers)
+  // ✅ renderToHtml remove করো — plain text দেখাও
   const readingTime = Math.ceil(article.description.split(" ").length / 200);
-
-  // Rendered HTML for display
-  const descHtml = useMemo(
-    () => renderToHtml(article.description),
-    [article.description],
-  );
 
   return (
     <div className="group relative flex flex-col rounded-lg overflow-hidden border border-(--color-active-border) bg-(--color-bg) hover:border-violet-500/40 hover:shadow-[0_8px_30px_rgba(109,40,217,0.1)] transition-all duration-300">
       <div className="relative h-52 shrink-0 overflow-hidden">
+        {/* ✅ quality="50" — compress करो */}
         <Image
           src={article.img}
           alt={article.title}
           fill
+          quality={50}
           className="object-cover group-hover:scale-105 transition-transform duration-500"
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
         />
@@ -65,12 +62,10 @@ export default function ArticleCard({ article }: Props) {
           </span>
         </div>
 
-        {/* Rendered markdown description — clipped to 3 lines (72px) */}
-        <div
-          className="text-sm text-(--color-gray) bangla flex-1 leading-6 overflow-hidden"
-          style={{ maxHeight: "72px" }}
-          dangerouslySetInnerHTML={{ __html: descHtml }}
-        />
+        {/* ✅ HTML rendering remove — plain text দেখাও */}
+        <p className="text-sm text-(--color-gray) bangla flex-1 leading-6 line-clamp-3">
+          {article.description.substring(0, 150)}...
+        </p>
 
         <div className="flex justify-between">
           <TimeAgo
@@ -105,4 +100,6 @@ export default function ArticleCard({ article }: Props) {
       </div>
     </div>
   );
-}
+});
+
+export default ArticleCard;

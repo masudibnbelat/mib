@@ -189,7 +189,7 @@ const ProjectSlider = ({ initialProjects }: Props) => {
 
   const mid = Math.ceil(initialProjects.length / 2);
   const firstRow = initialProjects.slice(0, mid);
-  const secondRow = initialProjects.slice(mid);
+  // const secondRow = initialProjects.slice(mid);
 
   return (
     <>
@@ -227,19 +227,11 @@ const ProjectSlider = ({ initialProjects }: Props) => {
 
         <div className="space-y-2">
           <MarqueeTrack projects={firstRow} speed={4} />
-          {secondRow.length > 0 && (
-            <MarqueeTrack projects={secondRow} reverse speed={4} />
-          )}
-        </div>
-
-        {/* ✅ View All button */}
-        <div className="flex justify-center mt-8">
-          <Link
-            href="/projects"
-            className="inline-flex items-center gap-2 rounded-xl border border-(--color-active-border) bg-(--color-active-bg) px-6 py-2.5 text-sm font-medium text-(--color-text) hover:border-violet-500/40 hover:shadow-lg hover:shadow-violet-500/10 transition-all duration-300"
-          >
-            View All Projects →
-          </Link>
+          {/* <div className="hidden lg:block">
+            {secondRow.length > 0 && (
+              <MarqueeTrack projects={secondRow} reverse speed={4} />
+            )}
+          </div> */}
         </div>
       </section>
     </>

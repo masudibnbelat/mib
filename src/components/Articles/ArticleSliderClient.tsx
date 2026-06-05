@@ -1,3 +1,4 @@
+// src/components/Articles/ArticleSliderClient.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -6,9 +7,6 @@ import { Inbox } from "lucide-react";
 
 const DELAY = 5000;
 const padded = (n: number) => String(n).padStart(2, "0");
-
-const BLUR_URL =
-  "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoH BwYIDAoMCwsKCwsNCxAQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/wAARC AACAAMBEQACEQEDEQH/xAAoAAEBAAAAAAAAAAAAAAAAAAAACQEBAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhADEAAAAXSgD//EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAQUCf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQMBAT8Bf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQIBAT8Bf//EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEABj8Cf//EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAT8hf//aAAwDAQACAAMAAAAQA//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQMBAT8Qf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQIBAT8Qf//EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAT8Qf//Z";
 
 interface TopicData {
   _id: string;
@@ -57,14 +55,13 @@ export default function ArticleSliderClient({
                   : "opacity-0 z-0 pointer-events-none"
               }`}
             >
+              {/* ✅ quality="40" — compress करो */}
               <Image
                 src={topic.img}
                 alt={topic.title}
                 fill
                 sizes="100vw"
-                quality={60}
-                placeholder="blur"
-                blurDataURL={BLUR_URL}
+                quality={40}
                 className="object-cover object-center"
                 priority={i === 0}
                 loading={i === 0 ? "eager" : "lazy"}
