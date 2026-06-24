@@ -633,7 +633,7 @@ function Toolbar({ onClose }: { onClose: () => void }) {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -6, scale: 0.96 }}
                 transition={{ duration: 0.13 }}
-                className="absolute top-full left-0 mt-1.5 z-[10001] w-48 rounded-xl border border-white/10 bg-gray-900/95 backdrop-blur-xl shadow-2xl shadow-black/50 overflow-hidden"
+                className="absolute top-full left-0 mt-1.5 z-10001 w-48 rounded-xl border border-white/10 bg-gray-900/95 backdrop-blur-xl shadow-2xl shadow-black/50 overflow-hidden"
               >
                 {(Object.entries(BLOCK_TYPES) as [BlockType, BlockInfo][]).map(
                   ([type, { label, Icon }]) => (
@@ -711,7 +711,7 @@ function Toolbar({ onClose }: { onClose: () => void }) {
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 5 }}
-                className="absolute top-full left-0 mt-1.5 z-[10001] w-40 p-2 rounded-xl border border-white/10 bg-gray-900/95 backdrop-blur-xl shadow-2xl"
+                className="absolute top-full left-0 mt-1.5 z-10001 w-40 p-2 rounded-xl border border-white/10 bg-gray-900/95 backdrop-blur-xl shadow-2xl"
               >
                 <div className="grid grid-cols-5 gap-1.5">
                   {TEXT_COLORS.map((color) => (
@@ -747,7 +747,7 @@ function Toolbar({ onClose }: { onClose: () => void }) {
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 5 }}
-                className="absolute top-full left-0 mt-1.5 z-[10001] w-40 p-2 rounded-xl border border-white/10 bg-gray-900/95 backdrop-blur-xl shadow-2xl"
+                className="absolute top-full left-0 mt-1.5 z-10001 w-40 p-2 rounded-xl border border-white/10 bg-gray-900/95 backdrop-blur-xl shadow-2xl"
               >
                 <div className="grid grid-cols-5 gap-1.5">
                   {BG_COLORS.map((bg) => (
@@ -918,7 +918,7 @@ function Toolbar({ onClose }: { onClose: () => void }) {
 
       {(showBlocks || showTextColor || showBgColor) && (
         <div
-          className="fixed inset-0 z-[10000]"
+          className="fixed inset-0 z-10000"
           onClick={() => {
             setShowBlocks(false);
             setShowTextColor(false);
@@ -1094,7 +1094,7 @@ export function MibEditor<T extends FieldValues = any>({
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.15 }}
-                    className="fixed inset-0 z-[9999] flex flex-col bg-gray-950"
+                    className="fixed inset-0 z-9999 flex flex-col bg-gray-950"
                     style={{ height: "100dvh", width: "100dvw" }}
                   >
                     <motion.div
