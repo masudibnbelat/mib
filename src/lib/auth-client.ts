@@ -1,5 +1,3 @@
-// src/lib/auth-client.ts
-
 const TOKEN_KEY = "auth_token";
 
 export interface TokenPayload {
@@ -26,41 +24,45 @@ export function generateToken(username: string, role: string): string {
     username,
     role,
     iat: now,
-    exp: now + 86400,
+    exp: now + 86400, // 24 hours
   };
 
   const encodedHeader = base64UrlEncode(JSON.stringify(header));
   const encodedPayload = base64UrlEncode(JSON.stringify(payload));
-  const signature = base64UrlEncode(
-    `${encodedHeader}.${encodedPayload}.client_signed`,
-  );
+  const signature = base64UrlEncode("client_signed");
 
   return `${encodedHeader}.${encodedPayload}.${signature}`;
 }
 
-// ✅ Custom event dispatch for same-tab detection
+function isBrowser(): boolean {
+  return typeof window !== "undefined";
+}
+
+// ✅ Event dispatcher for same-tab changes
 function notifyTokenChange() {
-  window.dispatchEvent(new Event("auth-token-change"));
+  if (isBrowser()) {
+    window.dispatchEvent(new Event("auth-token-change"));
+  }
 }
 
 export function setToken(token: string): void {
-  if (typeof window !== "undefined") {
+  if (isBrowser()) {
     localStorage.setItem(TOKEN_KEY, token);
-    notifyTokenChange();
+    notifyTokenChange(); // ✅ Notify AuthGuard
   }
 }
 
 export function getToken(): string | null {
-  if (typeof window !== "undefined") {
+  if (isBrowser()) {
     return localStorage.getItem(TOKEN_KEY);
   }
   return null;
 }
 
 export function removeToken(): void {
-  if (typeof window !== "undefined") {
+  if (isBrowser()) {
     localStorage.removeItem(TOKEN_KEY);
-    notifyTokenChange();
+    notifyTokenChange(); // ✅ Notify AuthGuard
   }
 }
 
@@ -74,15 +76,15 @@ export function decodeToken(): TokenPayload | null {
 
     const payload = JSON.parse(base64UrlDecode(parts[1])) as TokenPayload;
 
+    // Check expiry
     const now = Math.floor(Date.now() / 1000);
     if (payload.exp < now) {
-      removeToken();
+      removeToken(); // ✅ This will trigger notifyTokenChange
       return null;
     }
 
     return payload;
   } catch {
-    removeToken();
     return null;
   }
 }

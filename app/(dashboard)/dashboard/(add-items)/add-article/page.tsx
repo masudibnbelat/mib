@@ -10,7 +10,7 @@ import ImageUploadWithEditor, {
 } from "@/src/components/ImageEditor/ImageUploadWithEditor";
 import { axiosSecure } from "@/src/hooks/axiosSecure";
 import SelectInput from "@/src/components/common/SelectInput";
-import { MibEditorField } from "@/src/components/MibEditor/MibEditorField";
+import { MibEditor } from "@/src/components/MibEditor/MibEditor";
 
 interface ArticleFormData {
   topicId: string;
@@ -158,7 +158,7 @@ const AddArticle = () => {
         <label className="text-sm font-medium text-(--color-text) bangla block">
           বিবরণ
         </label>
-        <MibEditorField<ArticleFormData>
+        <MibEditor
           name="description"
           control={control}
           placeholder="বিস্তারিত বিবরণ লিখুন..."

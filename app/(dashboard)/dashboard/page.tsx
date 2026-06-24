@@ -1,5 +1,3 @@
-// src/app/dashboard/page.tsx
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -17,30 +15,33 @@ import toast, { Toaster } from "react-hot-toast";
 export default function Dashboard() {
   const router = useRouter();
   const [user, setUser] = useState<TokenPayload | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Check auth on mount
     if (!isAuthenticated()) {
-      toast.error("আগে লগইন করুন!");
       router.replace("/login");
       return;
     }
 
     const payload = decodeToken();
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setUser(payload);
-    setLoading(false);
+    if (payload) {
+      setUser(payload);
+    } else {
+      router.replace("/login");
+    }
   }, [router]);
 
   const handleLogout = () => {
     removeToken();
     toast.success("লগআউট সফল!");
-    router.replace("/login");
+    setTimeout(() => router.replace("/login"), 500);
   };
 
-  if (loading) {
+  // Don't render until user is loaded
+  if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-(--color-bg)">
+        <Toaster position="top-center" />
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
@@ -62,10 +63,7 @@ export default function Dashboard() {
         >
           {/* User Info */}
           <div className="flex items-center gap-3 mb-6">
-            <div
-              className="w-12 h-12 rounded-xl bg-(--color-bg) border border-(--color-active-border)
-                          flex items-center justify-center"
-            >
+            <div className="w-12 h-12 rounded-xl bg-(--color-bg) border border-(--color-active-border) flex items-center justify-center">
               <Shield
                 size={20}
                 strokeWidth={1.8}
@@ -77,7 +75,7 @@ export default function Dashboard() {
                 ড্যাশবোর্ড
               </h2>
               <p className="text-xs text-(--color-gray)">
-                {user?.username} • {user?.role}
+                {user.username} • {user.role}
               </p>
             </div>
           </div>
@@ -87,19 +85,19 @@ export default function Dashboard() {
             <div className="p-3 rounded-xl bg-(--color-bg) border border-(--color-active-border)">
               <p className="text-xs text-(--color-gray) mb-1">Username</p>
               <p className="text-sm font-medium text-(--color-text)">
-                {user?.username}
+                {user.username}
               </p>
             </div>
             <div className="p-3 rounded-xl bg-(--color-bg) border border-(--color-active-border)">
               <p className="text-xs text-(--color-gray) mb-1">Role</p>
               <p className="text-sm font-medium text-(--color-text)">
-                {user?.role}
+                {user.role}
               </p>
             </div>
             <div className="p-3 rounded-xl bg-(--color-bg) border border-(--color-active-border)">
               <p className="text-xs text-(--color-gray) mb-1">Token Expires</p>
               <p className="text-sm font-medium text-(--color-text)">
-                {user?.exp
+                {user.exp
                   ? new Date(user.exp * 1000).toLocaleString("bn-BD")
                   : "N/A"}
               </p>

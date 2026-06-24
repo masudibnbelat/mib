@@ -1,7 +1,6 @@
-// src/components/ArticleContent/ArticleContent.tsx
 "use client";
 import { useMemo, useRef, useEffect } from "react";
-import { renderToHtml } from "@/src/Utility/editor-renderer";
+import { marked } from "marked";
 
 interface ArticleContentProps {
   content: string;
@@ -12,10 +11,15 @@ export function ArticleContent({
   content,
   className = "",
 }: ArticleContentProps) {
-  const html = useMemo(() => renderToHtml(content), [content]);
+  const html = useMemo(() => {
+    return marked.parse(content, {
+      mangle: false,
+      headerIds: false,
+    }) as string;
+  }, [content]);
+
   const ref = useRef<HTMLDivElement>(null);
 
-  // Code block copy buttons
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -31,9 +35,10 @@ export function ArticleContent({
       if (!codeEl) return;
 
       navigator.clipboard.writeText(codeEl.textContent || "").then(() => {
+        const originalText = btn.textContent;
         btn.textContent = "✓ copied";
         setTimeout(() => {
-          btn.textContent = "📋";
+          btn.textContent = originalText;
         }, 1200);
       });
     };
@@ -45,7 +50,7 @@ export function ArticleContent({
   return (
     <div
       ref={ref}
-      className={`${className}`}
+      className={`${className} prose prose-slate max-w-none`} // Added prose classes for styling
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );

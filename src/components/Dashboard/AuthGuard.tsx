@@ -1,55 +1,57 @@
-// src/components/Dashboard/AuthGuard.tsx
-
 "use client";
 
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
-import { getToken, isAuthenticated } from "@/src/lib/auth-client";
-
-function subscribe(callback: () => void) {
-  // ✅ Other tab
-  const handleStorage = (e: StorageEvent) => {
-    if (e.key === "auth_token") callback();
-  };
-
-  // ✅ Same tab (removeToken/setToken call হলে)
-  const handleCustom = () => callback();
-
-  window.addEventListener("storage", handleStorage);
-  window.addEventListener("auth-token-change", handleCustom);
-
-  // ✅ Fallback: token expire হলে ধরবে
-  const interval = setInterval(callback, 5000);
-
-  return () => {
-    window.removeEventListener("storage", handleStorage);
-    window.removeEventListener("auth-token-change", handleCustom);
-    clearInterval(interval);
-  };
-}
-
-function getSnapshot() {
-  return getToken();
-}
-
-function getServerSnapshot() {
-  return null;
-}
+import { decodeToken, type TokenPayload } from "@/src/lib/auth-client";
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const [user, setUser] = useState<TokenPayload | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
 
-  const token = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  const authenticated = !!token && isAuthenticated();
+  const checkAuth = useCallback(() => {
+    const payload = decodeToken();
+    setUser(payload);
+    return payload;
+  }, []);
 
   useEffect(() => {
-    if (!authenticated) {
+    // ✅ Client-side mount mark
+    setIsMounted(true);
+    checkAuth();
+
+    // ✅ Cross-tab (other tab e token change)
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "auth_token") checkAuth();
+    };
+
+    // ✅ Same-tab (token set/remove)
+    const handleCustom = () => checkAuth();
+
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("auth-token-change", handleCustom);
+
+    // ✅ Token expire check
+    const interval = setInterval(checkAuth, 5000);
+
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("auth-token-change", handleCustom);
+      clearInterval(interval);
+    };
+  }, [checkAuth]);
+
+  // ✅ Redirect only after mount
+  useEffect(() => {
+    if (isMounted && !user) {
       router.replace("/login");
     }
-  }, [authenticated, router]);
+  }, [isMounted, user, router]);
 
-  if (!authenticated) {
+  // ✅ Server & client initial render: same output (loading spinner)
+  //    No hydration mismatch!
+  if (!isMounted || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-(--color-bg)">
         <div className="flex flex-col items-center gap-3">
