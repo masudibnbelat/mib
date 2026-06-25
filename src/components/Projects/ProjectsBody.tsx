@@ -38,26 +38,24 @@ const fetchProjects = async (
   return res.data;
 };
 
-// ✅ SSR-safe lazy initializer — mount-eই correct page পাওয়া যাবে, extra fetch লাগবে না
-const getInitialPage = (): number => {
-  if (typeof window === "undefined") return 1;
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    const parsed = saved ? parseInt(saved, 10) : NaN;
-    return !isNaN(parsed) && parsed >= 1 ? parsed : 1;
-  } catch {
-    return 1;
-  }
-};
-
 interface Props {
   initialData: ApiResponse; // ✅ server থেকে আসবে
 }
 
 const ProjectsBody = ({ initialData }: Props) => {
-  const [page, setPage] = useState<number>(getInitialPage);
+  const [page, setPage] = useState<number>(1);
   const [filter, setFilter] = useState<FilterType>("all");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      const parsed = saved ? parseInt(saved, 10) : NaN;
+      if (!isNaN(parsed) && parsed >= 1) setPage(parsed);
+    } catch {
+      //
+    }
+  }, []);
 
   const queryClient = useQueryClient();
 
@@ -177,11 +175,9 @@ const ProjectsBody = ({ initialData }: Props) => {
           <h2 className="text-4xl lg:text-5xl font-bold text-(--color-text)">
             Projects
           </h2>
-          {meta && (
-            <p className="mt-1 text-sm text-(--color-gray)">
-              Total {meta.total} projects
-            </p>
-          )}
+          <p className="mt-1 text-sm text-(--color-gray)">
+            Total {meta?.total ?? initialData.meta.total} projects
+          </p>
         </div>
         <ProjectFilter value={filter} onChange={handleFilterChange} />
       </div>
