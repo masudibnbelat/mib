@@ -1,4 +1,4 @@
-// components/Pagination.tsx
+// src/components/common/Pagination.tsx
 "use client";
 
 import {
@@ -7,16 +7,82 @@ import {
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
+/* ───────────────────────────────────────────────
+   usePagination — generic, reusable, zero-loading
+   client-side pagination hook (works on any array)
+─────────────────────────────────────────────── */
+interface UsePaginationOptions {
+  pageSize?: number;
+  storageKey?: string;
+  scrollToTop?: boolean;
+}
+
+export function usePagination<T>(
+  items: T[],
+  { pageSize = 6, storageKey, scrollToTop = true }: UsePaginationOptions = {},
+) {
+  const [page, setPage] = useState(1);
+  const [mounted, setMounted] = useState(false);
+
+  const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+
+  // restore saved page once (client only)
+  useEffect(() => {
+    setMounted(true);
+    if (!storageKey) return;
+    try {
+      const saved = localStorage.getItem(storageKey);
+      const parsed = saved ? parseInt(saved, 10) : NaN;
+      if (!isNaN(parsed) && parsed >= 1) setPage(parsed);
+    } catch {
+      // localStorage unavailable (SSR / private mode)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey]);
+
+  // persist page
+  useEffect(() => {
+    if (!mounted || !storageKey) return;
+    try {
+      localStorage.setItem(storageKey, String(page));
+    } catch {
+      // ignore
+    }
+  }, [page, storageKey, mounted]);
+
+  // clamp if list shrinks (e.g. filter changes)
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [totalPages, page]);
+
+  const goToPage = useCallback(
+    (target: number) => {
+      setPage(Math.min(Math.max(target, 1), totalPages));
+      if (scrollToTop) window.scrollTo({ top: 0, behavior: "smooth" });
+    },
+    [totalPages, scrollToTop],
+  );
+
+  // instant slice — no network, no loading state
+  const paginated = useMemo(
+    () => items.slice((page - 1) * pageSize, page * pageSize),
+    [items, page, pageSize],
+  );
+
+  return { page, totalPages, paginated, goToPage };
+}
+
+/* ───────────────────────────────────────────────
+   Pagination — pure UI, CSS-transition only
+─────────────────────────────────────────────── */
 interface PaginationProps {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
   siblingCount?: number;
   showFirstLast?: boolean;
-  storageKey: string;
 }
 
 function getPageRange(
@@ -46,56 +112,24 @@ export default function Pagination({
   onPageChange,
   siblingCount = 1,
   showFirstLast = true,
-  storageKey,
 }: PaginationProps) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
-    try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved !== null) {
-        const parsed = parseInt(saved, 10);
-        if (!isNaN(parsed) && parsed >= 1 && parsed <= totalPages) {
-          onPageChange(parsed);
-        }
-      }
-    } catch {
-      // localStorage unavailable (SSR / private mode)
-    }
-  }, [storageKey]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Sync to localStorage on every page change
-  useEffect(() => {
-    if (!mounted) return;
-    try {
-      localStorage.setItem(storageKey, String(currentPage));
-    } catch {
-      // ignore
-    }
-  }, [currentPage, storageKey, mounted]);
-
-  // Clamp saved page if totalPages shrinks
-  useEffect(() => {
-    if (!mounted) return;
-    if (currentPage > totalPages && totalPages > 0) {
-      onPageChange(totalPages);
-    }
-  }, [totalPages]); // eslint-disable-line react-hooks/exhaustive-deps
+  const pages = useMemo(
+    () => getPageRange(currentPage, totalPages, siblingCount),
+    [currentPage, totalPages, siblingCount],
+  );
 
   if (totalPages <= 1) return null;
 
-  const pages = getPageRange(currentPage, totalPages, siblingCount);
-
   const btnBase =
-    "relative flex items-center justify-center rounded text-sm font-medium transition-colors duration-150 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed";
+    "relative flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-150 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed";
 
   const navBtn = `${btnBase} w-8 h-8 text-(--color-gray) hover:text-(--color-text) hover:bg-(--color-active-bg) border border-transparent hover:border-(--color-active-border) disabled:hover:bg-transparent disabled:hover:border-transparent`;
 
   return (
-    <div className="flex items-center justify-center gap-1 flex-wrap select-none mt-10 lg:mt-16">
-      {/* First */}
+    <nav
+      aria-label="Pagination"
+      className="flex items-center justify-center gap-1 flex-wrap select-none mt-10 lg:mt-16"
+    >
       {showFirstLast && (
         <button
           className={navBtn}
@@ -107,7 +141,6 @@ export default function Pagination({
         </button>
       )}
 
-      {/* Prev */}
       <button
         className={navBtn}
         onClick={() => onPageChange(currentPage - 1)}
@@ -117,52 +150,32 @@ export default function Pagination({
         <ChevronLeft className="w-4 h-4" />
       </button>
 
-      {/* Page numbers */}
       <div className="flex items-center gap-1">
-        <AnimatePresence mode="popLayout">
-          {pages.map((page, idx) =>
-            page === "..." ? (
-              <span
-                key={`dots-${idx}`}
-                className="w-8 h-8 flex items-center justify-center text-(--color-gray) text-sm"
-              >
-                ···
-              </span>
-            ) : (
-              <motion.button
-                key={page}
-                layout
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{
-                  duration: 0.15,
-                  type: "spring",
-                  stiffness: 300,
-                  damping: 25,
-                }}
-                onClick={() => onPageChange(page as number)}
-                className={`${btnBase} w-8 h-8 ${
-                  currentPage === page
-                    ? "bg-(--color-text) text-(--color-bg) border border-(--color-text) shadow-sm shadow-(--color-text/30"
-                    : "text-(--color-gray) hover:text-(--color-text) hover:bg-(--color-active-bg) border border-transparent hover:border-(--color-active-border)"
-                }`}
-              >
-                {currentPage === page && (
-                  <motion.span
-                    layoutId={`active-page-bg-${storageKey}`}
-                    className="absolute inset-0 rounded-lg bg-(--color-text) text-(--color-bg)  -z-10"
-                    transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                  />
-                )}
-                {page}
-              </motion.button>
-            ),
-          )}
-        </AnimatePresence>
+        {pages.map((p, idx) =>
+          p === "..." ? (
+            <span
+              key={`dots-${idx}`}
+              className="w-8 h-8 flex items-center justify-center text-(--color-gray) text-sm"
+            >
+              ···
+            </span>
+          ) : (
+            <button
+              key={p}
+              onClick={() => onPageChange(p as number)}
+              aria-current={currentPage === p ? "page" : undefined}
+              className={`${btnBase} w-8 h-8 ${
+                currentPage === p
+                  ? "bg-violet-600 text-white border border-violet-600 shadow-sm shadow-violet-600/30 scale-105"
+                  : "text-(--color-gray) hover:text-(--color-text) hover:bg-(--color-active-bg) border border-transparent hover:border-(--color-active-border)"
+              }`}
+            >
+              {p}
+            </button>
+          ),
+        )}
       </div>
 
-      {/* Next */}
       <button
         className={navBtn}
         onClick={() => onPageChange(currentPage + 1)}
@@ -172,7 +185,6 @@ export default function Pagination({
         <ChevronRight className="w-4 h-4" />
       </button>
 
-      {/* Last */}
       {showFirstLast && (
         <button
           className={navBtn}
@@ -183,6 +195,6 @@ export default function Pagination({
           <ChevronsRight className="w-4 h-4" />
         </button>
       )}
-    </div>
+    </nav>
   );
 }

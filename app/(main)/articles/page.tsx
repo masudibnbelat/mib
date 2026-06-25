@@ -40,7 +40,6 @@ const getArticles = unstable_cache(
 
     const raw = await Article.find()
       .sort({ createdAt: -1 })
-      .limit(12)
       .select(
         "_id title slug img description createdAt views likesCount shares topic",
       )

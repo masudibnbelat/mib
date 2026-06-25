@@ -1,6 +1,4 @@
 // src/components/projects/ProjectsBody.tsx
-
-// src/components/Projects/ProjectsBody.tsx
 "use client";
 
 import { startTransition, useCallback, useEffect, useState } from "react";
@@ -22,6 +20,7 @@ import Pagination from "../common/Pagination";
 const PAGE_SIZE = 6;
 const STALE_TIME = 1000 * 60 * 5;
 const GC_TIME = 1000 * 60 * 30;
+const STORAGE_KEY = "projects-pagination";
 
 const fetchProjects = async (
   filter: FilterType,
@@ -39,12 +38,24 @@ const fetchProjects = async (
   return res.data;
 };
 
+// ✅ SSR-safe lazy initializer — mount-eই correct page পাওয়া যাবে, extra fetch লাগবে না
+const getInitialPage = (): number => {
+  if (typeof window === "undefined") return 1;
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    const parsed = saved ? parseInt(saved, 10) : NaN;
+    return !isNaN(parsed) && parsed >= 1 ? parsed : 1;
+  } catch {
+    return 1;
+  }
+};
+
 interface Props {
   initialData: ApiResponse; // ✅ server থেকে আসবে
 }
 
 const ProjectsBody = ({ initialData }: Props) => {
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState<number>(getInitialPage);
   const [filter, setFilter] = useState<FilterType>("all");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
@@ -60,6 +71,15 @@ const ProjectsBody = ({ initialData }: Props) => {
     },
     [queryClient],
   );
+
+  // ✅ page change হলে persist করো
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, String(page));
+    } catch {
+      // localStorage unavailable (private mode etc.)
+    }
+  }, [page]);
 
   const { data, isFetching, isError, error, refetch } = useQuery<ApiResponse>({
     queryKey: ["projects", filter, page],
@@ -85,6 +105,13 @@ const ProjectsBody = ({ initialData }: Props) => {
     queryClient.setQueryData(["projects", "all", 1], initialData);
   }, [initialData, queryClient]);
 
+  // ✅ restored page যদি totalPages-এর বেশি হয়ে যায় (filter change / data shrink), clamp করো
+  useEffect(() => {
+    if (meta && page > meta.totalPages) {
+      setPage(meta.totalPages);
+    }
+  }, [meta, page]);
+
   const handleFilterChange = useCallback(
     (nextFilter: FilterType) => {
       if (nextFilter === filter) return;
@@ -101,8 +128,16 @@ const ProjectsBody = ({ initialData }: Props) => {
       if (nextPage === page) return;
       if (nextPage < 1) return;
       if (meta && nextPage > meta.totalPages) return;
+
       startTransition(() => {
         setPage(nextPage);
+      });
+
+      requestAnimationFrame(() => {
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth",
+        });
       });
     },
     [page, meta],
@@ -227,7 +262,8 @@ const ProjectsBody = ({ initialData }: Props) => {
             currentPage={page}
             totalPages={meta.totalPages}
             onPageChange={handlePageChange}
-            storageKey="projects-pagination"
+            siblingCount={2}
+            showFirstLast={false}
           />
         </div>
       )}

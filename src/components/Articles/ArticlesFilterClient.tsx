@@ -7,7 +7,7 @@ import type { TopicData } from "@/src/types/Topic";
 import type { ArticleData } from "@/src/types/article";
 import SelectInput from "../common/SelectInput";
 import ArticleCard from "./ArticleCard";
-import Pagination from "../common/Pagination";
+import Pagination, { usePagination } from "../common/Pagination";
 
 interface Props {
   articles: ArticleData[];
@@ -19,7 +19,6 @@ const PAGE_SIZE = 6;
 
 export default function ArticlesFilterClient({ articles, topics }: Props) {
   const [selected, setSelected] = useState(ALL);
-  const [page, setPage] = useState(1);
 
   const topicOptions = useMemo(
     () => [
@@ -37,13 +36,18 @@ export default function ArticlesFilterClient({ articles, topics }: Props) {
     [articles, selected],
   );
 
-  const handleTopicChange = useCallback((value: string) => {
-    setSelected(value);
-    setPage(1);
-  }, []);
+  const { page, totalPages, paginated, goToPage } = usePagination(filtered, {
+    pageSize: PAGE_SIZE,
+    storageKey: "articles-filter-pagination",
+  });
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const handleTopicChange = useCallback(
+    (value: string) => {
+      setSelected(value);
+      goToPage(1);
+    },
+    [goToPage],
+  );
 
   const label =
     topicOptions.find((o) => o.value === selected)?.label ?? "সব টপিক";
@@ -88,8 +92,7 @@ export default function ArticlesFilterClient({ articles, topics }: Props) {
             <Pagination
               currentPage={page}
               totalPages={totalPages}
-              onPageChange={setPage}
-              storageKey="articles-filter-pagination"
+              onPageChange={goToPage}
             />
           )}
         </div>
