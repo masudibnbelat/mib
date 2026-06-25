@@ -1,9 +1,9 @@
-// layout.tsx
 import type { Metadata } from "next";
 import { Audiowide, Geist, Geist_Mono, Rubik } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/src/providers/ThemeProvider";
 import QueryProvider from "@/src/providers/QueryProvider";
+import ThemeInit from "@/src/components/Theme/ThemeInit";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,24 +42,8 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} ${rubik.variable} ${audiowide.variable} h-full antialiased`}
     >
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  var t = localStorage.getItem('theme');
-                  document.documentElement.setAttribute(
-                    'data-theme',
-                    t === 'light' || t === 'dark' ? t : 'dark'
-                  );
-                } catch(e) {}
-              })();
-            `,
-          }}
-        />
-      </head>
       <body className="min-h-full flex flex-col bg-(--color-bg) text-(--color-text) container mx-auto">
+        <ThemeInit />
         <ThemeProvider>
           <QueryProvider>{children}</QueryProvider>
         </ThemeProvider>

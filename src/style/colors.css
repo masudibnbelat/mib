@@ -17,21 +17,26 @@ ClassName=" text-(--color-text) hover:text-(--color-text-hover) bg-(--color-bg)"
 */
 
 /* ── Light (default) ── */
-:root {
-  --color-bg: #ffffff;
-  --color-text: #1f2125;
-  --color-gray: #9ca3af;
-  --color-active-border: rgba(15, 23, 42, 0.2);
-  --color-active-bg: rgba(15, 23, 42, 0.1);
-  --color-active-text: #13161c;
-}
+/* src/style/colors.css */
 
-/* ── Dark ── */
-[data-theme="dark"] {
+/* ── Dark (default) ── */
+:root {
+  color-scheme: dark;
   --color-bg: #12161c;
   --color-text: #ffffff;
   --color-gray: #90a1b9;
   --color-active-border: rgba(248, 249, 250, 0.2);
   --color-active-bg: rgba(248, 249, 250, 0.1);
   --color-active-text: #ffffff;
+}
+
+/* ── Light ── */
+[data-theme="light"] {
+  color-scheme: light;
+  --color-bg: #ffffff;
+  --color-text: #1f2125;
+  --color-gray: #9ca3af;
+  --color-active-border: rgba(15, 23, 42, 0.2);
+  --color-active-bg: rgba(15, 23, 42, 0.1);
+  --color-active-text: #13161c;
 }

@@ -1,11 +1,8 @@
 /* globals.css */
 
 @import "tailwindcss";
-
-@variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 @import "../src/style/font.css";
 @import "../src/style/colors.css";
+@import "../src/style/scrollbar.css";
 
-@layer base {
-  @import "../src/style/scrollbar.css";
-}
+@variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));

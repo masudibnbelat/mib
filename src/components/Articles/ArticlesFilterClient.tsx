@@ -37,7 +37,6 @@ export default function ArticlesFilterClient({ articles, topics }: Props) {
     [articles, selected],
   );
 
-  // ✅ useCallback দিয়ে wrap করো
   const handleTopicChange = useCallback((value: string) => {
     setSelected(value);
     setPage(1);

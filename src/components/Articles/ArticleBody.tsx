@@ -22,6 +22,11 @@ export default function ArticleBody() {
       if (!res.data.success) throw new Error("লোড করা যায়নি");
       return res.data.data;
     },
+    // ✅ প্রতি 2 মিনিটে auto refetch
+    refetchInterval: 120_000,
+    // ✅ window focus করলেও auto refetch
+    refetchOnWindowFocus: true,
+    // ✅ stale time — 1 মিনিট পর থেকে "stale" মানে fresh data আনবে
     staleTime: 60_000,
   });
 

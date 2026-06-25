@@ -1,3 +1,4 @@
+// app/articles/[slug]/page.tsx
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { Calendar, Clock3, Eye, Folder } from "lucide-react";
@@ -9,6 +10,7 @@ import ShareButton from "@/src/components/Articles/ShareButton";
 import ViewTracker from "@/src/components/Articles/ViewTracker";
 import BackButton from "@/src/components/Articles/BackButton";
 import DatenClock from "@/src/components/Date/DatenClock";
+import ArticleHero from "@/src/components/Articles/ArticleHero"; // ✅
 import "@/src/models/Topic";
 import { ArticleContent } from "@/src/providers/ArticleContent";
 import TimeAgo from "@/src/components/common/TimeAgo";
@@ -50,32 +52,39 @@ export default async function ArticleDetails({
     <div className="min-h-screen bg-(--color-bg) mt-20">
       <ViewTracker slug={decodedSlug} />
 
-      <div className="relative w-full h-[42vh] sm:h-[55vh]">
-        {article.img ? (
-          <Image
+      {/* ── Hero Image ── */}
+      {article.img ? (
+        <div className="relative">
+          <ArticleHero
             src={article.img}
             alt={article.title ?? "Article image"}
-            fill
-            priority
-            className="object-cover"
-            sizes="100vw"
           />
-        ) : (
-          <div className="w-full h-full bg-gray-800" />
-        )}
-        <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/30 to-black/10" />
-        <div className="absolute top-4 left-4">
-          <BackButton />
-        </div>
 
-        <div className="absolute bottom-0 left-0 right-0 px-4 sm:px-8 pb-6">
-          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-white bangla leading-snug drop-shadow-md">
+          {/* Back button — image এর উপর */}
+          <div className="absolute top-4 left-4 z-10">
+            <BackButton />
+          </div>
+
+          {/* Title — image এর উপর */}
+          <div className="absolute bottom-0 left-0 right-0 px-4 sm:px-8 pb-6 z-10">
+            <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-white bangla leading-snug drop-shadow-md">
+              {article.title}
+            </h1>
+          </div>
+        </div>
+      ) : (
+        <div className="relative w-full h-[42vh] sm:h-[55vh] bg-gray-800 flex items-center justify-center">
+          <div className="absolute top-4 left-4 z-10">
+            <BackButton />
+          </div>
+          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-white bangla leading-snug px-4">
             {article.title}
           </h1>
         </div>
-      </div>
+      )}
 
-      <div className="container mx-auto max-w-3xl px-4 sm:px-6 py-8 space-y-8">
+      {/* ── Content ── */}
+      <div className="container mx-auto w-full px-4 sm:px-6 py-8 space-y-8">
         <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-(--color-active-border)">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-(--color-gray)">
             <span className="flex items-center gap-1.5">
@@ -106,7 +115,6 @@ export default async function ArticleDetails({
           </div>
         </div>
 
-        {/* ★ এখানেই change — আগে plain text ছিল, এখন styled render */}
         <article className="bangla">
           <ArticleContent
             content={article.description}

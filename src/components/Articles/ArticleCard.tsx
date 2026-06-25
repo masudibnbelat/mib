@@ -14,7 +14,10 @@ interface Props {
   onRefetch?: () => void;
 }
 
-// ✅ memo wrapper দিয়ে re-render কমাও
+const stripHtml = (html: string): string => {
+  return html.replace(/<[^>]*>/g, "").trim();
+};
+
 const ArticleCard = memo(function ArticleCard({ article }: Props) {
   const date = new Date(article.createdAt).toLocaleDateString("en-US", {
     year: "numeric",
@@ -22,13 +25,18 @@ const ArticleCard = memo(function ArticleCard({ article }: Props) {
     day: "numeric",
   });
 
-  // ✅ renderToHtml remove করো — plain text দেখাও
   const readingTime = Math.ceil(article.description.split(" ").length / 200);
+
+  // ✅ Plain text preview — no hydration mismatch
+  const plainDescription = stripHtml(article.description);
+  const truncatedDescription =
+    plainDescription.length > 150
+      ? plainDescription.substring(0, 150) + "…"
+      : plainDescription;
 
   return (
     <div className="group relative flex flex-col rounded-lg overflow-hidden border border-(--color-active-border) bg-(--color-bg) hover:border-violet-500/40 hover:shadow-[0_8px_30px_rgba(109,40,217,0.1)] transition-all duration-300">
       <div className="relative h-52 shrink-0 overflow-hidden">
-        {/* ✅ quality="50" — compress करो */}
         <Image
           src={article.img}
           alt={article.title}
@@ -46,9 +54,11 @@ const ArticleCard = memo(function ArticleCard({ article }: Props) {
       </div>
 
       <div className="flex flex-col flex-1 p-4 gap-3">
-        <h3 className="text-xl font-semibold text-(--color-text) bangla line-clamp-2 leading-snug group-hover:text-violet-500 transition-colors">
-          {article.title}
-        </h3>
+        <Link href={`/articles/${article.slug}`}>
+          <h3 className="text-xl font-semibold text-(--color-text) bangla line-clamp-2 leading-snug group-hover:text-violet-500 transition-colors">
+            {article.title}
+          </h3>
+        </Link>
 
         <div className="flex items-center gap-3 text-xs text-(--color-gray)">
           <span className="flex items-center gap-1 bangla">
@@ -62,9 +72,8 @@ const ArticleCard = memo(function ArticleCard({ article }: Props) {
           </span>
         </div>
 
-        {/* ✅ HTML rendering remove — plain text দেখাও */}
         <p className="text-sm text-(--color-gray) bangla flex-1 leading-6 line-clamp-3">
-          {article.description.substring(0, 150)}...
+          {truncatedDescription}
         </p>
 
         <div className="flex justify-between">
