@@ -481,6 +481,70 @@ export class StyledQuoteNode extends DecoratorNode<ReactElement> {
   updateDOM(): false {
     return false;
   }
+  exportDOM(): { element: HTMLElement } {
+    const div = document.createElement("div");
+    div.setAttribute("data-styled-quote", "true");
+    div.setAttribute("data-quote-style", this.__quoteStyle);
+
+    // quote container
+    const container = document.createElement("blockquote");
+    container.setAttribute("data-style", this.__quoteStyle);
+    container.style.cssText = this._getInlineStyles();
+    container.textContent = this.__quoteText;
+
+    div.appendChild(container);
+
+    // author
+    if (this.__author) {
+      const authorEl = document.createElement("cite");
+      authorEl.textContent = `— ${this.__author}`;
+      authorEl.style.cssText =
+        "display:block;margin-top:0.75rem;font-style:normal;";
+      div.appendChild(authorEl);
+    }
+
+    return { element: div };
+  }
+
+  _getInlineStyles(): string {
+    const base =
+      "display:block;padding:1.25rem;margin:1rem 0;border-radius:0.75rem;";
+
+    switch (this.__quoteStyle) {
+      case "elegant":
+        return (
+          base +
+          "border-left:4px solid #8b5cf6;background:rgba(139,92,246,0.06);font-style:italic;font-family:Georgia,serif;"
+        );
+      case "gradient":
+        return (
+          base +
+          "border-left:4px solid #ec4899;background:linear-gradient(135deg,rgba(236,72,153,0.06),rgba(139,92,246,0.06));"
+        );
+      case "brutalist":
+        return (
+          base +
+          "border-left:4px solid #f97316;background:rgba(249,115,22,0.06);text-transform:uppercase;font-weight:800;font-size:1.25rem;"
+        );
+      case "literary":
+        return (
+          base +
+          "border-top:1px solid var(--color-active-border);border-bottom:1px solid var(--color-active-border);border-left:none;text-align:center;font-style:italic;font-family:Georgia,serif;"
+        );
+      case "callout":
+        return (
+          base +
+          "border:1px solid rgba(59,130,246,0.2);background:rgba(59,130,246,0.06);border-left:4px solid #3b82f6;"
+        );
+      case "whisper":
+        return (
+          base +
+          "text-align:center;opacity:0.6;font-style:italic;background:rgba(148,163,184,0.05);"
+        );
+      default:
+        return base + "border-left:4px solid #8b5cf6;";
+    }
+  }
 
   setQuoteText(text: string): void {
     this.getWritable().__quoteText = text;
@@ -920,6 +984,32 @@ export class PollNode extends DecoratorNode<ReactElement> {
     return false;
   }
 
+  exportDOM(): { element: HTMLElement } {
+    const div = document.createElement("div");
+    div.setAttribute("data-poll", "true");
+    div.style.cssText =
+      "border:1px solid var(--color-active-border);border-radius:0.75rem;padding:1rem;margin:1rem 0;";
+
+    const title = document.createElement("h4");
+    title.style.cssText = "font-weight:600;margin-bottom:0.75rem;";
+    title.textContent = `📊 ${this.__question}`;
+    div.appendChild(title);
+
+    const list = document.createElement("ul");
+    list.style.cssText = "list-style:none;padding:0;margin:0;";
+
+    this.__options.forEach((opt) => {
+      const li = document.createElement("li");
+      li.style.cssText =
+        "padding:0.5rem 0.75rem;margin-bottom:0.375rem;border:1px solid var(--color-active-border);border-radius:0.5rem;";
+      li.textContent = opt.text;
+      list.appendChild(li);
+    });
+
+    div.appendChild(list);
+    return { element: div };
+  }
+
   setQuestion(q: string): void {
     this.getWritable().__question = q;
   }
@@ -1162,6 +1252,22 @@ export class ColumnsNode extends DecoratorNode<ReactElement> {
 
   updateDOM(): false {
     return false;
+  }
+
+  exportDOM(): { element: HTMLElement } {
+    const div = document.createElement("div");
+    div.setAttribute("data-columns", "true");
+    div.style.cssText = `display:grid;grid-template-columns:repeat(${this.__columnCount},1fr);gap:1rem;margin:1rem 0;`;
+
+    this.__columnContents.forEach((text, i) => {
+      const col = document.createElement("div");
+      col.style.cssText =
+        "padding:0.75rem;border:1px solid var(--color-active-border);border-radius:0.5rem;";
+      col.textContent = text || `Column ${i + 1}`;
+      div.appendChild(col);
+    });
+
+    return { element: div };
   }
 
   setColumnCount(count: number): void {
