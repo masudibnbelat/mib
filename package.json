@@ -23,6 +23,7 @@
     "date-fns": "^4.1.0",
     "jose": "^6.2.3",
     "jsonwebtoken": "^9.0.3",
+    "katex": "^0.17.0",
     "lexical": "^0.45.0",
     "lucide-react": "^1.14.0",
     "marked": "^18.0.5",
@@ -44,6 +45,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/katex": "^0.16.8",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

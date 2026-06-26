@@ -2,6 +2,7 @@
 "use client";
 
 import { useCallback, useState, useEffect, useRef } from "react";
+import type { ReactElement } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sigma, X } from "lucide-react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
@@ -10,26 +11,27 @@ import {
   $isRangeSelection,
   $createParagraphNode,
   $createTextNode,
-  TextNode,
   DecoratorNode,
-  NodeKey,
-  LexicalNode,
-  EditorConfig,
-  SerializedLexicalNode,
-  Spread,
-  DOMExportOutput,
-  DOMConversionMap,
-  LexicalEditor,
+  type NodeKey,
+  type LexicalNode,
+  type EditorConfig,
+  type SerializedLexicalNode,
+  type Spread,
+  type LexicalEditor,
 } from "lexical";
+import katex from "katex";
+import "katex/dist/katex.min.css";
 
-/* ═══════════════════ Equation Node ═══════════════════ */
+/* ═══════════════════ Types ═══════════════════ */
 
 type SerializedEquationNode = Spread<
   { equation: string; inline: boolean },
   SerializedLexicalNode
 >;
 
-export class EquationNode extends DecoratorNode<JSX.Element> {
+/* ═══════════════════ Equation Node ═══════════════════ */
+
+export class EquationNode extends DecoratorNode<ReactElement> {
   __equation: string;
   __inline: boolean;
 
@@ -81,7 +83,7 @@ export class EquationNode extends DecoratorNode<JSX.Element> {
     writable.__equation = equation;
   }
 
-  decorate(_editor: LexicalEditor, config: EditorConfig): JSX.Element {
+  decorate(_editor: LexicalEditor, _config: EditorConfig): ReactElement {
     return (
       <EquationRenderer
         equation={this.__equation}
@@ -117,41 +119,27 @@ function EquationRenderer({
   nodeKey: NodeKey;
 }) {
   const ref = useRef<HTMLSpanElement>(null);
-  const [rendered, setRendered] = useState(false);
 
   useEffect(() => {
     if (!ref.current || !equation) return;
 
-    // Try to use KaTeX if available
-    const renderEquation = async () => {
-      try {
-        // Dynamic import of KaTeX
-        const katex = (await import("katex")).default;
-        if (ref.current) {
-          katex.render(equation, ref.current, {
-            displayMode: !inline,
-            throwOnError: false,
-            errorColor: "#ef4444",
-          });
-          setRendered(true);
-        }
-      } catch {
-        // Fallback: just show the raw LaTeX
-        if (ref.current) {
-          ref.current.textContent = inline
-            ? `$${equation}$`
-            : `$$${equation}$$`;
-          ref.current.style.fontFamily = "monospace";
-          ref.current.style.color = "var(--color-text)";
-          ref.current.style.backgroundColor = "var(--color-active-bg)";
-          ref.current.style.padding = "2px 6px";
-          ref.current.style.borderRadius = "4px";
-          ref.current.style.fontSize = "0.9em";
-        }
+    try {
+      katex.render(equation, ref.current, {
+        displayMode: !inline,
+        throwOnError: false,
+        errorColor: "#ef4444",
+      });
+    } catch {
+      if (ref.current) {
+        ref.current.textContent = inline ? `$${equation}$` : `$$${equation}$$`;
+        ref.current.style.fontFamily = "monospace";
+        ref.current.style.color = "var(--color-text)";
+        ref.current.style.backgroundColor = "var(--color-active-bg)";
+        ref.current.style.padding = "2px 6px";
+        ref.current.style.borderRadius = "4px";
+        ref.current.style.fontSize = "0.9em";
       }
-    };
-
-    renderEquation();
+    }
   }, [equation, inline]);
 
   return (
@@ -176,35 +164,26 @@ function EquationModal({
 }) {
   const [equation, setEquation] = useState("");
   const [inline, setInline] = useState(true);
-  const [preview, setPreview] = useState<string>("");
   const previewRef = useRef<HTMLDivElement>(null);
 
-  // Live preview
   useEffect(() => {
     if (!previewRef.current || !equation.trim()) {
       if (previewRef.current) previewRef.current.textContent = "";
       return;
     }
 
-    const renderPreview = async () => {
-      try {
-        const katex = (await import("katex")).default;
-        if (previewRef.current) {
-          katex.render(equation, previewRef.current, {
-            displayMode: !inline,
-            throwOnError: false,
-            errorColor: "#ef4444",
-          });
-        }
-      } catch {
-        if (previewRef.current) {
-          previewRef.current.textContent = equation;
-          previewRef.current.style.fontFamily = "monospace";
-        }
+    try {
+      katex.render(equation, previewRef.current, {
+        displayMode: !inline,
+        throwOnError: false,
+        errorColor: "#ef4444",
+      });
+    } catch {
+      if (previewRef.current) {
+        previewRef.current.textContent = equation;
+        previewRef.current.style.fontFamily = "monospace";
       }
-    };
-
-    renderPreview();
+    }
   }, [equation, inline]);
 
   return (
@@ -212,7 +191,7 @@ function EquationModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-100000 flex items-center justify-center bg-black/50 backdrop-blur-sm"
       onClick={onClose}
     >
       <motion.div
@@ -299,7 +278,7 @@ function EquationModal({
               </label>
               <div
                 ref={previewRef}
-                className="min-h-[3rem] flex items-center justify-center bg-(--color-active-bg) border border-(--color-active-border) rounded-xl px-4 py-3 text-(--color-text)"
+                className="min-h-12 flex items-center justify-center bg-(--color-active-bg) border border-(--color-active-border) rounded-xl px-4 py-3 text-(--color-text)"
               />
             </div>
           )}
@@ -373,11 +352,9 @@ export function useEquationActions() {
         if (!$isRangeSelection(sel)) return;
 
         if (inline) {
-          // For inline, insert as styled text (fallback if EquationNode not registered)
           const text = $createTextNode(`$${equation}$`);
           sel.insertNodes([text]);
         } else {
-          // For block, insert as a separate paragraph
           const para = $createParagraphNode();
           const text = $createTextNode(`$$${equation}$$`);
           para.append(text);

@@ -56,8 +56,11 @@ import { ColorToolbarButtons } from "./color";
 import {
   CodeToolbarButtons,
   CodeHighlightPlugin,
-  CodeActionOverlays,
+  CodeActionMenuPlugin,
   $isInCodeBlock,
+  CodeTabIndentPlugin,
+  CodeExitPlugin,
+  codeTheme,
 } from "./code";
 import { QuoteToolbarDropdown, $isInQuote } from "./quote";
 import {
@@ -69,6 +72,7 @@ import {
 } from "./table";
 import { FontFamilyDropdown, FontSizeDropdown, StickyNoteButton } from "./font";
 import { EquationToolbarButton } from "./equation";
+import { PollNode, ColumnsNode, StyledQuoteNode } from "./quote";
 
 /* ═══════════════════ Editor Theme ═══════════════════ */
 
@@ -93,39 +97,57 @@ const editorTheme = {
   },
   quote:
     "border-l-4 border-violet-500 pl-4 my-3 italic text-(--color-gray) leading-relaxed",
-  code: "mib-code-block block relative bg-(--color-active-bg) text-(--color-text) border border-(--color-active-border) rounded-lg pt-12 pb-4 px-4 font-mono text-sm leading-relaxed my-4 whitespace-pre-wrap break-words overflow-hidden",
+  code: [
+    "mib-code-block",
+    "block relative",
+    "bg-(--color-active-bg)",
+    "text-(--color-text)",
+    "border border-(--color-active-border)",
+    "rounded-xl",
+    "font-mono text-[13px]/[1.7]",
+    "my-4",
+    // ✅ Tight top padding + left space for line numbers
+    "pt-2 pb-2 pl-14 pr-12",
+    "whitespace-pre",
+    "overflow-x-auto",
+    "selection:bg-violet-500/30",
+    "focus-within:border-violet-500/60",
+    "transition-[border-color] duration-200",
+  ].join(" "),
+
   codeHighlight: {
-    atrule: "text-purple-400",
-    attr: "text-blue-400",
-    boolean: "text-orange-400",
-    builtin: "text-green-400",
-    cdata: "text-(--color-gray)",
-    char: "text-green-300",
-    class: "text-blue-300",
-    "class-name": "text-blue-300",
-    comment: "text-(--color-gray) italic",
-    constant: "text-orange-400",
-    deleted: "text-red-400",
-    doctype: "text-(--color-gray)",
-    entity: "text-yellow-400",
-    function: "text-blue-400",
-    important: "text-orange-400 font-bold",
-    inserted: "text-green-400",
-    keyword: "text-purple-400",
-    namespace: "text-purple-300",
-    number: "text-orange-400",
-    operator: "text-yellow-400",
-    prolog: "text-(--color-gray)",
-    property: "text-orange-400",
-    punctuation: "text-(--color-gray)",
-    regex: "text-orange-400",
-    selector: "text-green-400",
-    string: "text-green-300",
-    symbol: "text-orange-400",
-    tag: "text-orange-400",
-    url: "text-yellow-400",
-    variable: "text-orange-300",
+    atrule: "text-[#c678dd]",
+    attr: "text-[#56b6c2]",
+    boolean: "text-[#d19a66]",
+    builtin: "text-[#e5c07b]",
+    cdata: "text-[#7f848e] italic",
+    char: "text-[#98c379]",
+    class: "text-[#e5c07b]",
+    "class-name": "text-[#e5c07b]",
+    comment: "text-[#7f848e] italic",
+    constant: "text-[#d19a66]",
+    deleted: "text-[#e06c75]",
+    doctype: "text-[#7f848e]",
+    entity: "text-[#56b6c2]",
+    function: "text-[#61afef]",
+    important: "text-[#e06c75] font-bold",
+    inserted: "text-[#98c379]",
+    keyword: "text-[#c678dd]",
+    namespace: "text-[#c678dd]/80",
+    number: "text-[#d19a66]",
+    operator: "text-[#56b6c2]",
+    prolog: "text-[#7f848e]",
+    property: "text-[#d19a66]",
+    punctuation: "text-[#abb2bf]",
+    regex: "text-[#98c379]",
+    selector: "text-[#98c379]",
+    string: "text-[#98c379]",
+    symbol: "text-[#d19a66]",
+    tag: "text-[#e06c75]",
+    url: "text-[#56b6c2] underline decoration-[#56b6c2]/30",
+    variable: "text-[#e06c75]",
   },
+
   text: {
     bold: "font-bold",
     italic: "italic",
@@ -164,6 +186,9 @@ const initialConfig = {
     TableNode,
     TableRowNode,
     TableCellNode,
+    PollNode, // ← add
+    ColumnsNode, // ← add
+    StyledQuoteNode,
   ],
 };
 
@@ -450,7 +475,6 @@ function EditorInner({
       <Toolbar onClose={onClose} />
 
       <div className="relative flex-1 overflow-y-auto">
-        <CodeActionOverlays />
         <RichTextPlugin
           contentEditable={
             <ContentEditable
@@ -487,6 +511,10 @@ function EditorInner({
       <HtmlSyncPlugin onChange={onChange} initialHtml={initialValue} />
       <CodeHighlightPlugin />
       <AutoFocusPlugin />
+      <CodeTabIndentPlugin />
+      <CodeExitPlugin />
+
+      <CodeActionMenuPlugin />
       <TablePlugin hasCellMerge hasCellBackgroundColor={false} />
       <TableContextMenuPlugin />
       <TableStyleInjector />
