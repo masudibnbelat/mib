@@ -1,7 +1,12 @@
 // components/MibEditor/quote.tsx
 "use client";
 
-import type { ComponentType, ElementType, ReactNode } from "react";
+import type {
+  ComponentType,
+  ElementType,
+  ReactElement,
+  ReactNode,
+} from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -193,7 +198,6 @@ function StyledQuoteComponent({
       case "elegant":
         return (
           <div className="relative px-8 py-6">
-            {/* Giant decorative quotes */}
             <svg
               className="absolute top-2 left-2 w-12 h-12 text-violet-500/15"
               viewBox="0 0 24 24"
@@ -438,7 +442,7 @@ function StyledQuoteComponent({
 }
 
 // ── Styled Quote Node ──
-export class StyledQuoteNode extends DecoratorNode<JSX.Element> {
+export class StyledQuoteNode extends DecoratorNode<ReactElement> {
   __quoteText: string;
   __author: string;
   __quoteStyle: QuoteStyle;
@@ -490,7 +494,7 @@ export class StyledQuoteNode extends DecoratorNode<JSX.Element> {
     this.getWritable().__quoteStyle = style;
   }
 
-  decorate(editor: LexicalEditor): JSX.Element {
+  decorate(editor: LexicalEditor): ReactElement {
     return (
       <StyledQuoteComponent
         quoteText={this.__quoteText}
@@ -640,7 +644,6 @@ function PollComponent({
     });
   }, [editor, nodeKey]);
 
-  // Winner detection
   const maxVotes = Math.max(...editOptions.map((o) => o.votes));
 
   return (
@@ -889,7 +892,7 @@ function PollComponent({
   );
 }
 
-export class PollNode extends DecoratorNode<JSX.Element> {
+export class PollNode extends DecoratorNode<ReactElement> {
   __question: string;
   __options: PollOption[];
 
@@ -925,7 +928,7 @@ export class PollNode extends DecoratorNode<JSX.Element> {
     this.getWritable().__options = opts;
   }
 
-  decorate(editor: LexicalEditor): JSX.Element {
+  decorate(editor: LexicalEditor): ReactElement {
     return (
       <PollComponent
         question={this.__question}
@@ -1129,7 +1132,7 @@ function ColumnsComponent({
   );
 }
 
-export class ColumnsNode extends DecoratorNode<JSX.Element> {
+export class ColumnsNode extends DecoratorNode<ReactElement> {
   __columnCount: number;
   __columnContents: string[];
 
@@ -1169,7 +1172,7 @@ export class ColumnsNode extends DecoratorNode<JSX.Element> {
     this.getWritable().__columnContents = contents;
   }
 
-  decorate(editor: LexicalEditor): JSX.Element {
+  decorate(editor: LexicalEditor): ReactElement {
     return (
       <ColumnsComponent
         columnCount={this.__columnCount}
@@ -1269,59 +1272,50 @@ function QuoteStylePicker({
 }: {
   onSelect: (style: QuoteStyle) => void;
 }) {
+  const colorMap: Record<string, string> = {
+    violet: "text-violet-400",
+    pink: "text-pink-400",
+    orange: "text-orange-400",
+    emerald: "text-emerald-400",
+    blue: "text-blue-400",
+    slate: "text-slate-400",
+  };
+  const bgMap: Record<string, string> = {
+    violet: "bg-violet-500/10",
+    pink: "bg-pink-500/10",
+    orange: "bg-orange-500/10",
+    emerald: "bg-emerald-500/10",
+    blue: "bg-blue-500/10",
+    slate: "bg-slate-500/10",
+  };
+
   return (
     <div className="p-2 space-y-1">
-      <button
-        type="button"
-        onClick={() =>
-          onSelect(QUOTE_STYLES[0]?.key ?? ("elegant" as QuoteStyle))
-        }
-        className="sr-only"
-      />
-      {QUOTE_STYLES.map((qs) => {
-        const colorMap: Record<string, string> = {
-          violet: "text-violet-400",
-          pink: "text-pink-400",
-          orange: "text-orange-400",
-          emerald: "text-emerald-400",
-          blue: "text-blue-400",
-          slate: "text-slate-400",
-        };
-        const bgMap: Record<string, string> = {
-          violet: "bg-violet-500/10",
-          pink: "bg-pink-500/10",
-          orange: "bg-orange-500/10",
-          emerald: "bg-emerald-500/10",
-          blue: "bg-blue-500/10",
-          slate: "bg-slate-500/10",
-        };
-
-        return (
-          <motion.button
-            key={qs.key}
-            type="button"
-            whileHover={{ x: 2 }}
-            onClick={() => onSelect(qs.key)}
-            className="flex w-full items-center gap-3 px-3 py-2 rounded-xl text-left hover:bg-(--color-active-bg) transition-colors"
+      {QUOTE_STYLES.map((qs) => (
+        <motion.button
+          key={qs.key}
+          type="button"
+          whileHover={{ x: 2 }}
+          onClick={() => onSelect(qs.key)}
+          className="flex w-full items-center gap-3 px-3 py-2 rounded-xl text-left hover:bg-(--color-active-bg) transition-colors"
+        >
+          <div
+            className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${bgMap[qs.color] ?? "bg-(--color-active-bg)"}`}
           >
-            <div
-              className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${bgMap[qs.color] ?? "bg-(--color-active-bg)"}`}
-            >
-              <qs.Icon
-                className={`w-3.5 h-3.5 ${colorMap[qs.color] ?? "text-(--color-text)/50"}`}
-              />
+            <qs.Icon
+              className={`w-3.5 h-3.5 ${colorMap[qs.color] ?? "text-(--color-text)/50"}`}
+            />
+          </div>
+          <div className="min-w-0">
+            <div className="text-xs font-medium text-(--color-text)">
+              {qs.label}
             </div>
-            <div className="min-w-0">
-              <div className="text-xs font-medium text-(--color-text)">
-                {qs.label}
-              </div>
-              <div className="text-[10px] text-(--color-text)/35 truncate">
-                {qs.desc}
-              </div>
+            <div className="text-[10px] text-(--color-text)/35 truncate">
+              {qs.desc}
             </div>
-          </motion.button>
-        );
-      })}
+          </div>
+        </motion.button>
+      ))}
     </div>
   );
 }
@@ -1549,7 +1543,7 @@ export function QuoteToolbarDropdown({
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ duration: 0.13 }}
             role="menu"
-            className="absolute left-0 top-full z-[10001] mt-1.5 w-60 overflow-hidden rounded-2xl border border-(--color-active-border) bg-(--color-bg) shadow-2xl"
+            className="absolute left-0 top-full z-10001 mt-1.5 w-60 overflow-hidden rounded-2xl border border-(--color-active-border) bg-(--color-bg) shadow-2xl"
           >
             <AnimatePresence mode="wait">
               {!subMenu ? (
@@ -1572,7 +1566,7 @@ export function QuoteToolbarDropdown({
                       hasSubmenu,
                       color,
                     }) => {
-                      const c = COLOR_MAP[color] ?? COLOR_MAP.violet;
+                      const c = COLOR_MAP[color] ?? COLOR_MAP.violet!;
                       return (
                         <motion.button
                           key={key}

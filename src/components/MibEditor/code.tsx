@@ -97,10 +97,11 @@ export const codeTheme = {
     "rounded-xl",
     "font-mono text-[13px]/[1.7]",
     "my-5",
-    // ✅ Tight padding — no excess top space, left space reserved for line numbers
     "!pt-2 !pb-2 !pl-[3.5rem] !pr-5",
-    "whitespace-pre",
-    "overflow-x-auto",
+    // ✅ Word wrap always on
+    "whitespace-pre-wrap",
+    "break-all",
+    "overflow-x-hidden",
     "selection:bg-violet-500/30",
     "focus-within:border-violet-500/60",
     "transition-[border-color] duration-200",
@@ -461,7 +462,6 @@ export const LanguageDropdown = memo(function LanguageDropdown({
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    LINE NUMBERS OVERLAY
-   Renders line numbers in a gutter positioned over the left side of the code block
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 function CodeLineNumbers({ codeDom }: { codeDom: HTMLElement }) {
@@ -474,18 +474,12 @@ function CodeLineNumbers({ codeDom }: { codeDom: HTMLElement }) {
     visible: boolean;
   }>({ top: 0, left: 0, height: 0, paddingTop: 0, visible: false });
 
-  // ✅ Count lines correctly for Lexical code blocks
   useEffect(() => {
     const countLines = () => {
-      // Lexical inserts <br> between code lines.
-      // Total lines = number of <br> elements + 1
-      // But we also need to handle the case where text has \n (from paste)
       const brCount = codeDom.querySelectorAll(":scope > br").length;
       const text = codeDom.textContent || "";
       const nlCount = (text.match(/\n/g) || []).length;
-
-      const count = Math.max(brCount + 1, nlCount + 1, 1);
-      setLineCount(count);
+      setLineCount(Math.max(brCount + 1, nlCount + 1, 1));
     };
 
     countLines();
@@ -496,11 +490,9 @@ function CodeLineNumbers({ codeDom }: { codeDom: HTMLElement }) {
       subtree: true,
       characterData: true,
     });
-
     return () => mo.disconnect();
   }, [codeDom]);
 
-  // ✅ Track position with proper padding awareness
   useEffect(() => {
     let rafId: number | null = null;
 
@@ -529,7 +521,6 @@ function CodeLineNumbers({ codeDom }: { codeDom: HTMLElement }) {
     const ro = new ResizeObserver(update);
     ro.observe(codeDom);
     ro.observe(document.body);
-
     window.addEventListener("scroll", update, true);
     window.addEventListener("resize", update);
 
@@ -552,8 +543,8 @@ function CodeLineNumbers({ codeDom }: { codeDom: HTMLElement }) {
         top: position.top,
         left: position.left,
         height: position.height,
-        width: "2.75rem", // ✅ 44px gutter width
-        paddingTop: position.paddingTop, // ✅ match code's top padding
+        width: "2.75rem",
+        paddingTop: position.paddingTop,
         zIndex: 99997,
         pointerEvents: "none",
         userSelect: "none",
@@ -603,7 +594,6 @@ function CodeCopyButton({ codeDom }: { codeDom: HTMLElement }) {
     const ro = new ResizeObserver(update);
     ro.observe(codeDom);
     ro.observe(document.body);
-
     window.addEventListener("scroll", update, true);
     window.addEventListener("resize", update);
 
@@ -626,29 +616,21 @@ function CodeCopyButton({ codeDom }: { codeDom: HTMLElement }) {
       e.preventDefault();
       e.stopPropagation();
 
-      // ✅ Extract text preserving line breaks (Lexical uses <br> for newlines)
       const extractCodeText = (root: HTMLElement): string => {
         let result = "";
         const walk = (node: Node) => {
           if (node.nodeType === Node.TEXT_NODE) {
-            // Preserve all whitespace (spaces, tabs) exactly as-is
             result += node.textContent || "";
           } else if (node.nodeType === Node.ELEMENT_NODE) {
             const el = node as HTMLElement;
-            const tag = el.tagName.toLowerCase();
-            if (tag === "br") {
+            if (el.tagName.toLowerCase() === "br") {
               result += "\n";
             } else {
-              // Recurse into children (spans from syntax highlighting, etc.)
-              for (const child of Array.from(el.childNodes)) {
-                walk(child);
-              }
+              for (const child of Array.from(el.childNodes)) walk(child);
             }
           }
         };
-        for (const child of Array.from(root.childNodes)) {
-          walk(child);
-        }
+        for (const child of Array.from(root.childNodes)) walk(child);
         return result;
       };
 
@@ -660,12 +642,11 @@ function CodeCopyButton({ codeDom }: { codeDom: HTMLElement }) {
         if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
         copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
       } catch {
-        const textarea = document.createElement("textarea");
-        textarea.value = text;
-        textarea.style.position = "fixed";
-        textarea.style.opacity = "0";
-        document.body.appendChild(textarea);
-        textarea.select();
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.cssText = "position:fixed;opacity:0";
+        document.body.appendChild(ta);
+        ta.select();
         try {
           document.execCommand("copy");
           setCopied(true);
@@ -674,7 +655,7 @@ function CodeCopyButton({ codeDom }: { codeDom: HTMLElement }) {
         } catch (e2) {
           console.error("Copy failed:", e2);
         }
-        document.body.removeChild(textarea);
+        document.body.removeChild(ta);
       }
     },
     [codeDom],
@@ -696,15 +677,13 @@ function CodeCopyButton({ codeDom }: { codeDom: HTMLElement }) {
         zIndex: 99998,
       }}
       className={cn(
-        "inline-flex items-center gap-1.5",
-        "px-2.5 py-1.5 rounded-md",
+        "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md",
         "text-[11px] font-medium",
         "bg-(--color-bg)/90 backdrop-blur-md",
         "border border-(--color-active-border)",
         "shadow-md shadow-black/20",
         "transition-all duration-200",
-        "cursor-pointer outline-none select-none",
-        "pointer-events-auto",
+        "cursor-pointer outline-none select-none pointer-events-auto",
         copied
           ? "text-emerald-400 border-emerald-500/30"
           : "text-(--color-gray) hover:text-(--color-text) hover:bg-(--color-active-bg)",

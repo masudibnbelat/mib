@@ -1,7 +1,7 @@
 // components/MibEditor/index.tsx
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { Controller, FieldValues } from "react-hook-form";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -42,7 +42,12 @@ import { CodeNode, CodeHighlightNode } from "@lexical/code";
 import { TableNode, TableRowNode, TableCellNode } from "@lexical/table";
 
 // ── Feature imports ──
-import { ListToolbarButtons, $getActiveListType, type ListType } from "./lists";
+import {
+  ListToolbarButtons,
+  $getActiveListType,
+  type ListType,
+  CheckListStyleInjector,
+} from "./lists";
 import {
   HeadingDropdown,
   TextToolbarButtons,
@@ -60,7 +65,6 @@ import {
   $isInCodeBlock,
   CodeTabIndentPlugin,
   CodeExitPlugin,
-  codeTheme,
 } from "./code";
 import { QuoteToolbarDropdown, $isInQuote } from "./quote";
 import {
@@ -77,8 +81,9 @@ import { PollNode, ColumnsNode, StyledQuoteNode } from "./quote";
 /* ═══════════════════ Editor Theme ═══════════════════ */
 
 const editorTheme = {
-  root: "outline-none",
-  paragraph: "mb-2 last:mb-0 leading-relaxed",
+  root: "outline-none break-words",
+  paragraph:
+    "mb-2 last:mb-0 leading-relaxed break-words overflow-wrap-anywhere",
   heading: {
     h1: "text-3xl font-bold mb-3 leading-tight text-(--color-text)",
     h2: "text-2xl font-semibold mb-2.5 leading-snug text-(--color-text)",
@@ -92,8 +97,31 @@ const editorTheme = {
     ol: "list-decimal pl-6 my-2 space-y-1",
     ul: "list-disc pl-6 my-2 space-y-1",
     listitem: "leading-relaxed",
-    listitemChecked: "line-through opacity-50",
-    listitemUnchecked: "",
+    listitemChecked: [
+      "relative list-none pl-7 my-1 leading-relaxed",
+      "line-through opacity-60",
+      "before:content-['✓']",
+      "before:absolute before:left-0 before:top-0.5",
+      "before:flex before:items-center before:justify-center",
+      "before:w-5 before:h-5",
+      "before:rounded",
+      "before:border before:border-violet-500",
+      "before:bg-violet-500/20",
+      "before:text-violet-300",
+      "before:text-xs before:font-bold",
+      "before:cursor-pointer",
+    ].join(" "),
+    listitemUnchecked: [
+      "relative list-none pl-7 my-1 leading-relaxed",
+      "before:content-['']",
+      "before:absolute before:left-0 before:top-0.5",
+      "before:flex before:items-center before:justify-center",
+      "before:w-5 before:h-5",
+      "before:rounded",
+      "before:border before:border-[--color-active-border]",
+      "before:bg-[--color-active-bg]",
+      "before:cursor-pointer",
+    ].join(" "),
   },
   quote:
     "border-l-4 border-violet-500 pl-4 my-3 italic text-(--color-gray) leading-relaxed",
@@ -106,15 +134,15 @@ const editorTheme = {
     "rounded-xl",
     "font-mono text-[13px]/[1.7]",
     "my-4",
-    // ✅ Tight top padding + left space for line numbers
     "pt-2 pb-2 pl-14 pr-12",
-    "whitespace-pre",
-    "overflow-x-auto",
+    "whitespace-pre-wrap", // ← pre থেকে pre-wrap
+    "break-words", // ← break-all এর বদলে break-words
+    "overflow-wrap-anywhere", // ← অতিরিক্ত safety
+    "overflow-x-hidden", // ← overflow-x-auto বদলে hidden
     "selection:bg-violet-500/30",
     "focus-within:border-violet-500/60",
     "transition-[border-color] duration-200",
   ].join(" "),
-
   codeHighlight: {
     atrule: "text-[#c678dd]",
     attr: "text-[#56b6c2]",
@@ -147,7 +175,6 @@ const editorTheme = {
     url: "text-[#56b6c2] underline decoration-[#56b6c2]/30",
     variable: "text-[#e06c75]",
   },
-
   text: {
     bold: "font-bold",
     italic: "italic",
@@ -168,29 +195,24 @@ const editorTheme = {
   tableScrollableWrapper: "mib-table-wrapper",
 };
 
-/* ═══════════════════ Config ═══════════════════ */
+/* ═══════════════════ Editor Nodes ═══════════════════ */
 
-const initialConfig = {
-  namespace: "MibEditor",
-  theme: editorTheme,
-  onError: (error: Error) => console.error("MibEditor:", error),
-  nodes: [
-    HeadingNode,
-    QuoteNode,
-    ListNode,
-    ListItemNode,
-    LinkNode,
-    AutoLinkNode,
-    CodeNode,
-    CodeHighlightNode,
-    TableNode,
-    TableRowNode,
-    TableCellNode,
-    PollNode, // ← add
-    ColumnsNode, // ← add
-    StyledQuoteNode,
-  ],
-};
+const EDITOR_NODES = [
+  HeadingNode,
+  QuoteNode,
+  ListNode,
+  ListItemNode,
+  LinkNode,
+  AutoLinkNode,
+  CodeNode,
+  CodeHighlightNode,
+  TableNode,
+  TableRowNode,
+  TableCellNode,
+  PollNode,
+  ColumnsNode,
+  StyledQuoteNode,
+] as const;
 
 /* ═══════════════════ Internal Plugins ═══════════════════ */
 
@@ -231,6 +253,7 @@ function HtmlSyncPlugin({
     },
     [editor, onChange],
   );
+
   return <OnChangePlugin onChange={handleChange} />;
 }
 
@@ -273,7 +296,6 @@ function AutoFocusPlugin() {
 function Toolbar({ onClose }: { onClose: () => void }) {
   const [editor] = useLexicalComposerContext();
 
-  // ── State ──
   const [headingType, setHeadingType] = useState<HeadingType>("paragraph");
   const [listType, setListType] = useState<ListType | null>(null);
   const [textFormat, setTextFormat] = useState<TextFormatState>({
@@ -293,11 +315,9 @@ function Toolbar({ onClose }: { onClose: () => void }) {
   const [canRedo, setCanRedo] = useState(false);
   const [showLink, setShowLink] = useState(false);
 
-  // ── Update all state from editor ──
   const updateToolbar = useCallback(() => {
     const sel = $getSelection();
     if (!$isRangeSelection(sel)) return;
-
     setHeadingType($getActiveHeadingType());
     setListType($getActiveListType());
     setTextFormat($getTextFormatState());
@@ -330,7 +350,6 @@ function Toolbar({ onClose }: { onClose: () => void }) {
     );
   }, [editor, updateToolbar]);
 
-  // ── Reusable Toolbar Button ──
   const TB = useCallback(
     ({
       active,
@@ -370,7 +389,6 @@ function Toolbar({ onClose }: { onClose: () => void }) {
   return (
     <>
       <div className="flex flex-wrap items-center gap-0.5 px-2 py-1.5 border-b border-(--color-active-border) bg-(--color-active-bg) shrink-0">
-        {/* Undo / Redo */}
         <TB
           btnDisabled={!canUndo}
           onClick={() => editor.dispatchCommand(UNDO_COMMAND, undefined)}
@@ -387,16 +405,13 @@ function Toolbar({ onClose }: { onClose: () => void }) {
         </TB>
         <Sep />
 
-        {/* Font Family & Size */}
         <FontFamilyDropdown ToolbarButton={TB} />
         <FontSizeDropdown ToolbarButton={TB} />
         <Sep />
 
-        {/* Heading Dropdown */}
         <HeadingDropdown activeHeading={headingType} ToolbarButton={TB} />
         <Sep />
 
-        {/* Text Formatting (Bold, Italic, etc.) */}
         <TextToolbarButtons
           formatState={textFormat}
           ToolbarButton={TB}
@@ -404,19 +419,19 @@ function Toolbar({ onClose }: { onClose: () => void }) {
         />
         <Sep />
 
-        {/* Color & Highlight */}
         <ColorToolbarButtons ToolbarButton={TB} />
         <Sep />
 
-        {/* Lists */}
-        <ListToolbarButtons activeListType={listType} ToolbarButton={TB} />
+        <ListToolbarButtons
+          activeListType={listType}
+          ToolbarButton={TB}
+          showExtraActions
+        />
         <Sep />
 
-        {/* Quote / Pull / Column */}
         <QuoteToolbarDropdown isQuoteActive={isQuote} ToolbarButton={TB} />
         <Sep />
 
-        {/* Code */}
         <CodeToolbarButtons
           isInlineCode={isInlineCode}
           isCodeBlock={isCodeBlock}
@@ -424,17 +439,12 @@ function Toolbar({ onClose }: { onClose: () => void }) {
         />
         <Sep />
 
-        {/* Table */}
         <TableToolbarButton ToolbarButton={TB} />
         <Sep />
 
-        {/* Equation */}
         <EquationToolbarButton ToolbarButton={TB} />
-
-        {/* Sticky Note */}
         <StickyNoteButton ToolbarButton={TB} />
 
-        {/* Done */}
         <div className="ml-auto">
           <motion.button
             type="button"
@@ -449,7 +459,6 @@ function Toolbar({ onClose }: { onClose: () => void }) {
         </div>
       </div>
 
-      {/* Link Input Bar */}
       <LinkInputBar show={showLink} onClose={() => setShowLink(false)} />
     </>
   );
@@ -473,16 +482,17 @@ function EditorInner({
   return (
     <>
       <Toolbar onClose={onClose} />
-
       <div className="relative flex-1 overflow-y-auto">
         <RichTextPlugin
           contentEditable={
             <ContentEditable
-              className="outline-none w-full px-4 py-3 text-(--color-text) text-sm leading-relaxed"
+              className="outline-none w-full px-4 py-3 text-(--color-text) text-sm leading-relaxed wrap-break-word overflow-wrap-anywhere"
               style={{
                 minHeight: "calc(100dvh - 160px)",
                 opacity: disabled ? 0.5 : 1,
                 cursor: disabled ? "not-allowed" : "text",
+                overflowWrap: "anywhere",
+                wordBreak: "break-word",
               }}
             />
           }
@@ -495,16 +505,14 @@ function EditorInner({
         />
         <TableResizePlugin />
       </div>
-
       <AnimatePresence>
         <FloatingTableToolbar />
       </AnimatePresence>
       <WordCount />
-
-      {/* All Plugins */}
       <HistoryPlugin />
       <ListPlugin />
       <CheckListPlugin />
+      <CheckListStyleInjector /> {/* ← এটা add করো */}
       <LinkPlugin />
       <TabIndentationPlugin />
       <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
@@ -513,7 +521,6 @@ function EditorInner({
       <AutoFocusPlugin />
       <CodeTabIndentPlugin />
       <CodeExitPlugin />
-
       <CodeActionMenuPlugin />
       <TablePlugin hasCellMerge hasCellBackgroundColor={false} />
       <TableContextMenuPlugin />
@@ -541,6 +548,22 @@ export function MibEditor<T extends FieldValues = any>({
 }: MibEditorProps<T>) {
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  // ✅ Stable unique namespace per component instance
+  const namespace = useRef(
+    `MibEditor-${Math.random().toString(36).slice(2, 7)}`,
+  );
+
+  // ✅ Config created once per component mount — never recreated
+  const editorConfig = useMemo(
+    () => ({
+      namespace: namespace.current,
+      theme: editorTheme,
+      onError: (error: Error) => console.error("MibEditor:", error),
+      nodes: [...EDITOR_NODES],
+    }),
+    [],
+  );
 
   useEffect(() => setMounted(true), []);
 
@@ -654,10 +677,7 @@ export function MibEditor<T extends FieldValues = any>({
                       <div className="flex items-center gap-2">
                         <motion.div
                           animate={{ scale: [1, 1.35, 1] }}
-                          transition={{
-                            repeat: Infinity,
-                            duration: 2,
-                          }}
+                          transition={{ repeat: Infinity, duration: 2 }}
                           className="w-2 h-2 rounded-full bg-violet-500"
                         />
                         <span className="text-sm font-semibold text-(--color-text) bangla">
@@ -674,8 +694,8 @@ export function MibEditor<T extends FieldValues = any>({
                       </motion.button>
                     </motion.div>
 
-                    {/* Editor */}
-                    <LexicalComposer initialConfig={initialConfig}>
+                    {/* ✅ Use editorConfig instead of initialConfig */}
+                    <LexicalComposer initialConfig={editorConfig}>
                       <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
                         <EditorInner
                           onChange={field.onChange}

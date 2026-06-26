@@ -1,8 +1,22 @@
 // components/MibEditor/lists.tsx
 "use client";
 
-import { useCallback } from "react";
-import { List, ListOrdered, CheckSquare } from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  type ComponentType,
+  type ElementType,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
+import {
+  List,
+  ListOrdered,
+  CheckSquare,
+  IndentDecrease,
+  IndentIncrease,
+  ListX,
+} from "lucide-react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
   INSERT_ORDERED_LIST_COMMAND,
@@ -10,19 +24,32 @@ import {
   INSERT_CHECK_LIST_COMMAND,
   REMOVE_LIST_COMMAND,
   ListNode,
+  $isListNode,
 } from "@lexical/list";
-import { $getSelection, $isRangeSelection } from "lexical";
+import {
+  $getSelection,
+  $isRangeSelection,
+  INDENT_CONTENT_COMMAND,
+  OUTDENT_CONTENT_COMMAND,
+  type LexicalEditor,
+} from "lexical";
 import { $getNearestNodeOfType } from "@lexical/utils";
-import { $isListNode } from "@lexical/list";
 
 /* ─── Types ─── */
 export type ListType = "bullet" | "number" | "check";
 
 export interface ListBlockInfo {
   label: string;
-  Icon: React.ElementType;
+  Icon: ElementType;
   type: ListType;
 }
+
+/* ─── Command Map ─── */
+const LIST_COMMANDS = {
+  bullet: INSERT_UNORDERED_LIST_COMMAND,
+  number: INSERT_ORDERED_LIST_COMMAND,
+  check: INSERT_CHECK_LIST_COMMAND,
+} as const;
 
 /* ─── Config ─── */
 export const LIST_BLOCKS: ListBlockInfo[] = [
@@ -33,25 +60,37 @@ export const LIST_BLOCKS: ListBlockInfo[] = [
 
 /* ─── Helper: detect current list type ─── */
 export function $getActiveListType(): ListType | null {
-  const sel = $getSelection();
-  if (!$isRangeSelection(sel)) return null;
-  const anchor = sel.anchor.getNode();
-  const parent = $getNearestNodeOfType<ListNode>(anchor, ListNode);
-  if (!parent) {
-    const el =
-      anchor.getKey() === "root" ? anchor : anchor.getTopLevelElementOrThrow();
-    if ($isListNode(el)) {
-      const lt = el.getListType();
-      if (lt === "bullet") return "bullet";
-      if (lt === "check") return "check";
-      return "number";
-    }
-    return null;
-  }
-  const lt = parent.getListType();
+  const selection = $getSelection();
+  if (!$isRangeSelection(selection)) return null;
+
+  const anchorNode = selection.anchor.getNode();
+  const nearestList = $getNearestNodeOfType<ListNode>(anchorNode, ListNode);
+
+  const listNode =
+    nearestList ??
+    (() => {
+      const topLevel =
+        anchorNode.getKey() === "root"
+          ? anchorNode
+          : anchorNode.getTopLevelElementOrThrow();
+      return $isListNode(topLevel) ? topLevel : null;
+    })();
+
+  if (!listNode) return null;
+
+  const lt = (listNode as ListNode).getListType();
   if (lt === "bullet") return "bullet";
   if (lt === "check") return "check";
   return "number";
+}
+
+/* ─── Read active type outside update ─── */
+function readActiveListType(editor: LexicalEditor): ListType | null {
+  let result: ListType | null = null;
+  editor.getEditorState().read(() => {
+    result = $getActiveListType();
+  });
+  return result;
 }
 
 /* ─── Hook: useListActions ─── */
@@ -59,63 +98,194 @@ export function useListActions() {
   const [editor] = useLexicalComposerContext();
 
   const toggleList = useCallback(
-    (type: ListType, currentType: ListType | null) => {
-      if (type === "bullet") {
-        editor.dispatchCommand(
-          currentType === "bullet"
-            ? REMOVE_LIST_COMMAND
-            : INSERT_UNORDERED_LIST_COMMAND,
-          undefined,
-        );
-      } else if (type === "number") {
-        editor.dispatchCommand(
-          currentType === "number"
-            ? REMOVE_LIST_COMMAND
-            : INSERT_ORDERED_LIST_COMMAND,
-          undefined,
-        );
-      } else if (type === "check") {
-        editor.dispatchCommand(
-          currentType === "check"
-            ? REMOVE_LIST_COMMAND
-            : INSERT_CHECK_LIST_COMMAND,
-          undefined,
-        );
-      }
+    (type: ListType) => {
+      const currentType = readActiveListType(editor);
+      editor.focus(() => {
+        if (currentType === type) {
+          editor.dispatchCommand(REMOVE_LIST_COMMAND, undefined);
+        } else {
+          editor.dispatchCommand(LIST_COMMANDS[type], undefined);
+        }
+      });
     },
     [editor],
   );
 
-  return { toggleList };
+  const clearList = useCallback(() => {
+    editor.focus(() => {
+      editor.dispatchCommand(REMOVE_LIST_COMMAND, undefined);
+    });
+  }, [editor]);
+
+  const indentList = useCallback(() => {
+    editor.focus(() => {
+      editor.dispatchCommand(INDENT_CONTENT_COMMAND, undefined);
+    });
+  }, [editor]);
+
+  const outdentList = useCallback(() => {
+    editor.focus(() => {
+      editor.dispatchCommand(OUTDENT_CONTENT_COMMAND, undefined);
+    });
+  }, [editor]);
+
+  return { toggleList, clearList, indentList, outdentList };
 }
+
+/* ─── Prevent selection loss ─── */
+function preventBlur(action: () => void) {
+  return (e: MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    action();
+  };
+}
+
+/* ─── Toolbar Button Type ─── */
+type TBProps = {
+  active?: boolean;
+  onClick: () => void;
+  title: string;
+  children: ReactNode;
+  btnDisabled?: boolean;
+};
 
 /* ─── Toolbar Buttons ─── */
 export function ListToolbarButtons({
   activeListType,
   ToolbarButton,
+  showExtraActions = false,
 }: {
   activeListType: ListType | null;
-  ToolbarButton: React.ComponentType<{
-    active?: boolean;
-    onClick: () => void;
-    title: string;
-    children: React.ReactNode;
-  }>;
+  ToolbarButton: ComponentType<TBProps>;
+  showExtraActions?: boolean;
 }) {
-  const { toggleList } = useListActions();
+  const { toggleList, clearList, indentList, outdentList } = useListActions();
+  const hasActiveList = activeListType !== null;
 
   return (
     <>
       {LIST_BLOCKS.map(({ label, Icon, type }) => (
-        <ToolbarButton
-          key={type}
-          active={activeListType === type}
-          onClick={() => toggleList(type, activeListType)}
-          title={label}
-        >
-          <Icon className="w-4 h-4" />
-        </ToolbarButton>
+        <span key={type} onMouseDown={preventBlur(() => toggleList(type))}>
+          <ToolbarButton
+            active={activeListType === type}
+            onClick={() => {}}
+            title={label}
+          >
+            <Icon className="h-4 w-4" />
+          </ToolbarButton>
+        </span>
       ))}
+
+      {showExtraActions && hasActiveList && (
+        <>
+          <span onMouseDown={preventBlur(outdentList)}>
+            <ToolbarButton onClick={() => {}} title="Outdent">
+              <IndentDecrease className="h-4 w-4" />
+            </ToolbarButton>
+          </span>
+          <span onMouseDown={preventBlur(indentList)}>
+            <ToolbarButton onClick={() => {}} title="Indent">
+              <IndentIncrease className="h-4 w-4" />
+            </ToolbarButton>
+          </span>
+          <span onMouseDown={preventBlur(clearList)}>
+            <ToolbarButton onClick={() => {}} title="Remove List">
+              <ListX className="h-4 w-4" />
+            </ToolbarButton>
+          </span>
+        </>
+      )}
     </>
   );
+}
+
+/* ═══════════════════════════════════════════════════════
+   CheckList Style Injector — Pure Tailwind-compatible
+   No external CSS file needed
+   ═══════════════════════════════════════════════════════ */
+
+const CHECKLIST_STYLES = `
+  [role="checkbox"] {
+    position: relative;
+    list-style: none;
+    padding-left: 1.75rem;
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+    line-height: 1.625;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  [role="checkbox"]::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.25rem;
+    width: 1.125rem;
+    height: 1.125rem;
+    border-radius: 0.3rem;
+    border: 1.5px solid rgba(139, 92, 246, 0.4);
+    background: rgba(139, 92, 246, 0.06);
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  [role="checkbox"]:hover::before {
+    border-color: rgba(139, 92, 246, 0.7);
+    background: rgba(139, 92, 246, 0.12);
+  }
+
+  [role="checkbox"][aria-checked="true"]::before {
+    content: "✓";
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #a78bfa;
+    border-color: rgba(139, 92, 246, 0.6);
+    background: rgba(139, 92, 246, 0.18);
+  }
+
+  [role="checkbox"][aria-checked="true"] {
+    text-decoration: line-through;
+    opacity: 0.55;
+  }
+
+  [role="checkbox"][aria-checked="true"]:hover {
+    opacity: 0.75;
+  }
+
+  [role="checkbox"] > span {
+    pointer-events: none;
+  }
+
+  [role="checkbox"]:focus-visible {
+    outline: none;
+  }
+
+  [role="checkbox"]:focus-visible::before {
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.3);
+  }
+`;
+
+export function CheckListStyleInjector() {
+  useEffect(() => {
+    const id = "mib-checklist-styles";
+
+    if (document.getElementById(id)) return;
+
+    const style = document.createElement("style");
+    style.id = id;
+    style.textContent = CHECKLIST_STYLES;
+    document.head.appendChild(style);
+
+    return () => {
+      const existing = document.getElementById(id);
+      if (existing) existing.remove();
+    };
+  }, []);
+
+  return null;
 }

@@ -24,3 +24,18 @@ html {
 ::-webkit-scrollbar-thumb:hover {
   background: #1f2125;
 }
+
+/* --------------------- */
+/* Code block word wrap — force override */
+.mib-code-block {
+  white-space: pre-wrap !important;
+  word-break: break-words !important;
+  overflow-wrap: anywhere !important;
+  overflow-x: hidden !important;
+}
+
+/* Code block এর ভেতরের span/token গুলোও wrap করবে */
+.mib-code-block span {
+  white-space: pre-wrap !important;
+  word-break: break-words !important;
+}
