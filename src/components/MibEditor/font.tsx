@@ -223,27 +223,3 @@ export function FontSizeDropdown({
     </div>
   );
 }
-
-/* ─── Sticky Note Button ─── */
-export function StickyNoteButton({
-  ToolbarButton,
-}: {
-  ToolbarButton: React.ComponentType<{
-    active?: boolean;
-    onClick: () => void;
-    title: string;
-    children: React.ReactNode;
-  }>;
-}) {
-  const { insertStickyNote } = useFontActions();
-
-  return (
-    <ToolbarButton
-      active={false}
-      onClick={() => insertStickyNote(0)}
-      title="Insert Sticky Note"
-    >
-      <StickyNote className="w-4 h-4" />
-    </ToolbarButton>
-  );
-}

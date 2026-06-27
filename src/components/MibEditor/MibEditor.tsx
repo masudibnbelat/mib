@@ -1,10 +1,9 @@
-// components/MibEditor/index.tsx
+// components/MibEditor/MibEditor.tsx
 "use client";
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { Controller, FieldValues } from "react-hook-form";
 import { createPortal } from "react-dom";
-import { motion, AnimatePresence } from "framer-motion";
 import { X, FileText, Minimize2, Undo, Redo } from "lucide-react";
 
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
@@ -18,7 +17,6 @@ import { TRANSFORMERS } from "@lexical/markdown";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { TabIndentationPlugin } from "@lexical/react/LexicalTabIndentationPlugin";
 import { CheckListPlugin } from "@lexical/react/LexicalCheckListPlugin";
 import { TablePlugin } from "@lexical/react/LexicalTablePlugin";
 import {
@@ -40,13 +38,13 @@ import { ListNode, ListItemNode } from "@lexical/list";
 import { LinkNode, AutoLinkNode } from "@lexical/link";
 import { CodeNode, CodeHighlightNode } from "@lexical/code";
 import { TableNode, TableRowNode, TableCellNode } from "@lexical/table";
-
-// ── Feature imports ──
 import {
   ListToolbarButtons,
-  $getActiveListType,
-  type ListType,
-  CheckListStyleInjector,
+  ListTabIndentPlugin,
+  ListKeyboardShortcutPlugin,
+  useActiveListType,
+  ListBackspacePlugin,
+  ListEnterPlugin,
 } from "./lists";
 import {
   HeadingDropdown,
@@ -74,14 +72,15 @@ import {
   FloatingTableToolbar,
   TableStyleInjector,
 } from "./table";
-import { FontFamilyDropdown, FontSizeDropdown, StickyNoteButton } from "./font";
+import { FontFamilyDropdown, FontSizeDropdown } from "./font";
 import { EquationToolbarButton } from "./equation";
 import { PollNode, ColumnsNode, StyledQuoteNode } from "./quote";
 
 /* ═══════════════════ Editor Theme ═══════════════════ */
+/* (unchanged from your version) */
 
 const editorTheme = {
-  root: "outline-none break-words",
+  root: "outline-none break-words mib-editor-content",
   paragraph:
     "mb-2 last:mb-0 leading-relaxed break-words overflow-wrap-anywhere",
   heading: {
@@ -93,34 +92,40 @@ const editorTheme = {
     h6: "text-sm font-semibold mb-1.5 text-(--color-text) uppercase tracking-wide",
   },
   list: {
-    nested: { listitem: "list-none" },
-    ol: "list-decimal pl-6 my-2 space-y-1",
-    ul: "list-disc pl-6 my-2 space-y-1",
+    nested: {
+      listitem: "list-none",
+    },
+    ol: "list-decimal pl-6 my-2 space-y-0.5",
+    ul: "list-disc pl-6 my-2 space-y-0.5",
     listitem: "leading-relaxed",
     listitemChecked: [
       "relative list-none pl-7 my-1 leading-relaxed",
-      "line-through opacity-60",
+      "line-through opacity-55",
       "before:content-['✓']",
-      "before:absolute before:left-0 before:top-0.5",
-      "before:flex before:items-center before:justify-center",
-      "before:w-5 before:h-5",
-      "before:rounded",
-      "before:border before:border-violet-500",
+      "before:absolute before:left-0 before:top-[3px]",
+      "before:w-[18px] before:h-[18px]",
+      "before:rounded-md",
+      "before:border before:border-violet-400/60",
       "before:bg-violet-500/20",
       "before:text-violet-300",
-      "before:text-xs before:font-bold",
+      "before:text-[11px] before:font-bold",
+      "before:grid before:place-items-center",
       "before:cursor-pointer",
+      "before:transition-all before:duration-150",
+      "hover:opacity-75",
+      "hover:before:border-violet-400/80 hover:before:bg-violet-500/30",
     ].join(" "),
     listitemUnchecked: [
       "relative list-none pl-7 my-1 leading-relaxed",
       "before:content-['']",
-      "before:absolute before:left-0 before:top-0.5",
-      "before:flex before:items-center before:justify-center",
-      "before:w-5 before:h-5",
-      "before:rounded",
-      "before:border before:border-[--color-active-border]",
-      "before:bg-[--color-active-bg]",
+      "before:absolute before:left-0 before:top-[3px]",
+      "before:w-[18px] before:h-[18px]",
+      "before:rounded-md",
+      "before:border before:border-violet-400/40",
+      "before:bg-violet-500/[0.06]",
       "before:cursor-pointer",
+      "before:transition-all before:duration-150",
+      "hover:before:border-violet-400/70 hover:before:bg-violet-500/15",
     ].join(" "),
   },
   quote:
@@ -134,11 +139,11 @@ const editorTheme = {
     "rounded-xl",
     "font-mono text-[13px]/[1.7]",
     "my-4",
-    "pt-2 pb-2 pl-14 pr-12",
-    "whitespace-pre-wrap", // ← pre থেকে pre-wrap
-    "break-words", // ← break-all এর বদলে break-words
-    "overflow-wrap-anywhere", // ← অতিরিক্ত safety
-    "overflow-x-hidden", // ← overflow-x-auto বদলে hidden
+    "pt-2 pb-2 pl-2 pr-12",
+    "whitespace-pre-wrap",
+    "break-words",
+    "overflow-wrap-anywhere",
+    "overflow-x-hidden",
     "selection:bg-violet-500/30",
     "focus-within:border-violet-500/60",
     "transition-[border-color] duration-200",
@@ -235,7 +240,9 @@ function HtmlSyncPlugin({
       const parser = new DOMParser();
       const dom = parser.parseFromString(initialHtml, "text/html");
       const nodes = $generateNodesFromDOM(editor, dom);
-      $getRoot().clear();
+      const root = $getRoot();
+      root.clear();
+      root.selectEnd();
       $insertNodes(nodes);
     });
     didInit.current = true;
@@ -286,7 +293,10 @@ function WordCount() {
 function AutoFocusPlugin() {
   const [editor] = useLexicalComposerContext();
   useEffect(() => {
-    editor.focus();
+    const timer = setTimeout(() => {
+      editor.focus();
+    }, 50);
+    return () => clearTimeout(timer);
   }, [editor]);
   return null;
 }
@@ -297,7 +307,6 @@ function Toolbar({ onClose }: { onClose: () => void }) {
   const [editor] = useLexicalComposerContext();
 
   const [headingType, setHeadingType] = useState<HeadingType>("paragraph");
-  const [listType, setListType] = useState<ListType | null>(null);
   const [textFormat, setTextFormat] = useState<TextFormatState>({
     isBold: false,
     isItalic: false,
@@ -315,11 +324,12 @@ function Toolbar({ onClose }: { onClose: () => void }) {
   const [canRedo, setCanRedo] = useState(false);
   const [showLink, setShowLink] = useState(false);
 
+  const listType = useActiveListType();
+
   const updateToolbar = useCallback(() => {
     const sel = $getSelection();
     if (!$isRangeSelection(sel)) return;
     setHeadingType($getActiveHeadingType());
-    setListType($getActiveListType());
     setTextFormat($getTextFormatState());
     setIsInlineCode(sel.hasFormat("code"));
     setIsCodeBlock($isInCodeBlock());
@@ -350,6 +360,7 @@ function Toolbar({ onClose }: { onClose: () => void }) {
     );
   }, [editor, updateToolbar]);
 
+  // Plain CSS-only toolbar button — no framer-motion.
   const TB = useCallback(
     ({
       active,
@@ -364,20 +375,19 @@ function Toolbar({ onClose }: { onClose: () => void }) {
       children: React.ReactNode;
       btnDisabled?: boolean;
     }) => (
-      <motion.button
+      <button
         type="button"
-        whileTap={{ scale: 0.88 }}
         onClick={onClick}
         title={title}
         disabled={btnDisabled}
-        className={`flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed ${
+        className={`flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-150 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100 ${
           active
             ? "bg-violet-500/30 text-violet-300"
             : "text-(--color-gray) hover:text-(--color-text) hover:bg-(--color-active-bg)"
         }`}
       >
         {children}
-      </motion.button>
+      </button>
     ),
     [],
   );
@@ -443,19 +453,17 @@ function Toolbar({ onClose }: { onClose: () => void }) {
         <Sep />
 
         <EquationToolbarButton ToolbarButton={TB} />
-        <StickyNoteButton ToolbarButton={TB} />
 
         <div className="ml-auto">
-          <motion.button
+          <button
             type="button"
-            whileTap={{ scale: 0.9 }}
             onClick={onClose}
             title="Close editor"
-            className="flex items-center gap-1.5 px-2.5 h-8 rounded-lg text-xs font-medium text-(--color-gray) hover:text-(--color-text) hover:bg-(--color-active-bg) border border-(--color-active-border) transition-all duration-150"
+            className="flex items-center gap-1.5 px-2.5 h-8 rounded-lg text-xs font-medium text-(--color-gray) hover:text-(--color-text) hover:bg-(--color-active-bg) border border-(--color-active-border) transition-all duration-150 active:scale-95"
           >
             <Minimize2 className="w-4 h-4" />
             <span className="hidden sm:inline">Done</span>
-          </motion.button>
+          </button>
         </div>
       </div>
 
@@ -505,24 +513,31 @@ function EditorInner({
         />
         <TableResizePlugin />
       </div>
-      <AnimatePresence>
-        <FloatingTableToolbar />
-      </AnimatePresence>
+      <FloatingTableToolbar />
       <WordCount />
+      {/* ── Core Plugins ── */}
       <HistoryPlugin />
+      {/* ListPlugin already wires INSERT_PARAGRAPH_COMMAND -> $handleListInsertParagraph
+          internally, which is what makes "Enter on an empty list item" exit/outdent
+          the list. No extra Enter-key plugin needed on top of this. */}
       <ListPlugin />
       <CheckListPlugin />
-      <CheckListStyleInjector /> {/* ← এটা add করো */}
       <LinkPlugin />
-      <TabIndentationPlugin />
       <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
+      <TablePlugin hasCellMerge hasCellBackgroundColor={false} />
+      {/* ── Custom Plugins ── */}
       <HtmlSyncPlugin onChange={onChange} initialHtml={initialValue} />
-      <CodeHighlightPlugin />
       <AutoFocusPlugin />
+      {/* List plugins — এই দুইটা add করো */}
+      <ListBackspacePlugin /> {/* ← add */}
+      <ListEnterPlugin /> {/* ← add */}
+      <ListTabIndentPlugin />
+      <ListKeyboardShortcutPlugin />
+      {/* Code plugins  */}
+      <CodeHighlightPlugin />
       <CodeTabIndentPlugin />
       <CodeExitPlugin />
       <CodeActionMenuPlugin />
-      <TablePlugin hasCellMerge hasCellBackgroundColor={false} />
       <TableContextMenuPlugin />
       <TableStyleInjector />
     </>
@@ -539,6 +554,8 @@ interface MibEditorProps<T extends FieldValues = any> {
   disabled?: boolean;
 }
 
+const CLOSE_TRANSITION_MS = 160;
+
 export function MibEditor<T extends FieldValues = any>({
   name,
   control,
@@ -546,15 +563,21 @@ export function MibEditor<T extends FieldValues = any>({
   rows = 6,
   disabled = false,
 }: MibEditorProps<T>) {
+  // `isOpen` controls whether the (heavy) Lexical editor is mounted at all —
+  // keeping it unmounted while closed matters on constrained hardware.
   const [isOpen, setIsOpen] = useState(false);
+  // `isVisible` drives the CSS opacity/scale transition. Separating these two
+  // is what lets the close animation actually play before we unmount —
+  // previously the whole subtree (incl. the animation library) was removed
+  // in the same render that flipped isOpen, so the exit transition never ran.
+  const [isVisible, setIsVisible] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ✅ Stable unique namespace per component instance
   const namespace = useRef(
     `MibEditor-${Math.random().toString(36).slice(2, 7)}`,
   );
 
-  // ✅ Config created once per component mount — never recreated
   const editorConfig = useMemo(
     () => ({
       namespace: namespace.current,
@@ -568,6 +591,31 @@ export function MibEditor<T extends FieldValues = any>({
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
+    return () => {
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+    };
+  }, []);
+
+  const openEditor = useCallback(() => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setIsOpen(true);
+  }, []);
+
+  const closeEditor = useCallback(() => {
+    setIsVisible(false);
+    closeTimer.current = setTimeout(() => {
+      setIsOpen(false);
+    }, CLOSE_TRANSITION_MS);
+  }, []);
+
+  // Trigger the enter transition on the frame after mount.
+  useEffect(() => {
+    if (!isOpen) return;
+    const raf = requestAnimationFrame(() => setIsVisible(true));
+    return () => cancelAnimationFrame(raf);
+  }, [isOpen]);
+
+  useEffect(() => {
     if (!mounted) return;
     document.body.style.overflow = isOpen ? "hidden" : "";
     return () => {
@@ -578,11 +626,11 @@ export function MibEditor<T extends FieldValues = any>({
   useEffect(() => {
     if (!isOpen) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setIsOpen(false);
+      if (e.key === "Escape") closeEditor();
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [isOpen]);
+  }, [isOpen, closeEditor]);
 
   return (
     <Controller
@@ -597,24 +645,20 @@ export function MibEditor<T extends FieldValues = any>({
         return (
           <>
             {/* ── Preview Card ── */}
-            <motion.div
-              whileHover={
-                disabled ? {} : { borderColor: "rgba(139,92,246,0.6)" }
-              }
-              whileTap={disabled ? {} : { scale: 0.995 }}
-              onClick={() => !disabled && setIsOpen(true)}
+            <div
+              onClick={() => !disabled && openEditor()}
               role="button"
               tabIndex={disabled ? -1 : 0}
               onKeyDown={(e) => {
                 if (!disabled && (e.key === "Enter" || e.key === " ")) {
                   e.preventDefault();
-                  setIsOpen(true);
+                  openEditor();
                 }
               }}
-              className={`relative rounded-xl border border-(--color-active-border) bg-(--color-active-bg) transition-all duration-200 overflow-hidden hover:shadow-[0_0_0_3px_rgba(139,92,246,0.12)] ${
+              className={`relative rounded-xl border border-(--color-active-border) bg-(--color-active-bg) transition-all duration-200 overflow-hidden active:scale-[0.995] ${
                 disabled
                   ? "opacity-50 cursor-not-allowed pointer-events-none"
-                  : "cursor-text"
+                  : "cursor-text hover:border-violet-500/60 hover:shadow-[0_0_0_3px_rgba(139,92,246,0.12)]"
               }`}
               style={{ minHeight: `${rows * 1.9}rem` }}
             >
@@ -640,74 +684,60 @@ export function MibEditor<T extends FieldValues = any>({
                 )}
               </div>
               {!disabled && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  whileHover={{ opacity: 1 }}
-                  className="absolute inset-0 bg-violet-500/5 flex items-center justify-center"
-                >
+                <div className="absolute inset-0 bg-violet-500/5 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200">
                   <div className="flex items-center gap-2 text-violet-300 text-xs font-medium bg-(--color-bg) px-3 py-1.5 rounded-full border border-violet-500/30 shadow-lg pointer-events-none">
                     <FileText className="w-3.5 h-3.5" />
                     Click to edit
                   </div>
-                </motion.div>
+                </div>
               )}
-            </motion.div>
+            </div>
 
             {/* ── Fullscreen Editor ── */}
             {isOpen &&
               mounted &&
               createPortal(
-                <AnimatePresence>
-                  <motion.div
-                    key="mib-fullscreen"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.15 }}
-                    className="fixed inset-0 z-9999 flex flex-col bg-(--color-bg)"
-                    style={{ height: "100dvh", width: "100dvw" }}
-                  >
-                    {/* Header */}
-                    <motion.div
-                      initial={{ y: -24, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{ delay: 0.05, duration: 0.18 }}
-                      className="flex items-center justify-between px-4 py-3 border-b border-(--color-active-border) bg-(--color-active-bg) shrink-0"
+                <div
+                  className={`fixed inset-0 z-9999 flex flex-col bg-(--color-bg) transition-[opacity,transform] duration-150 ${
+                    isVisible
+                      ? "opacity-100 scale-100"
+                      : "opacity-0 scale-[0.98]"
+                  }`}
+                  style={{ height: "100dvh", width: "100dvw" }}
+                >
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-(--color-active-border) bg-(--color-active-bg) shrink-0">
+                    <div className="flex items-center gap-2">
+                      {/* "Live" dot — pure CSS, no JS animation loop */}
+                      <span className="relative flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full rounded-full bg-violet-500 opacity-75 animate-ping" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-violet-500" />
+                      </span>
+                      <span className="text-sm font-semibold text-(--color-text) bangla">
+                        বিবরণ লিখুন
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={closeEditor}
+                      className="p-1.5 rounded-lg hover:bg-(--color-active-bg) text-(--color-gray) hover:text-(--color-text) transition-all duration-150 active:scale-90 active:rotate-90"
                     >
-                      <div className="flex items-center gap-2">
-                        <motion.div
-                          animate={{ scale: [1, 1.35, 1] }}
-                          transition={{ repeat: Infinity, duration: 2 }}
-                          className="w-2 h-2 rounded-full bg-violet-500"
-                        />
-                        <span className="text-sm font-semibold text-(--color-text) bangla">
-                          বিবরণ লিখুন
-                        </span>
-                      </div>
-                      <motion.button
-                        type="button"
-                        whileTap={{ scale: 0.9, rotate: 90 }}
-                        onClick={() => setIsOpen(false)}
-                        className="p-1.5 rounded-lg hover:bg-(--color-active-bg) text-(--color-gray) hover:text-(--color-text) transition-colors"
-                      >
-                        <X className="w-5 h-5" />
-                      </motion.button>
-                    </motion.div>
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
 
-                    {/* ✅ Use editorConfig instead of initialConfig */}
-                    <LexicalComposer initialConfig={editorConfig}>
-                      <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-                        <EditorInner
-                          onChange={field.onChange}
-                          placeholder={placeholder}
-                          disabled={disabled}
-                          onClose={() => setIsOpen(false)}
-                          initialValue={field.value}
-                        />
-                      </div>
-                    </LexicalComposer>
-                  </motion.div>
-                </AnimatePresence>,
+                  <LexicalComposer initialConfig={editorConfig}>
+                    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+                      <EditorInner
+                        onChange={field.onChange}
+                        placeholder={placeholder}
+                        disabled={disabled}
+                        onClose={closeEditor}
+                        initialValue={field.value}
+                      />
+                    </div>
+                  </LexicalComposer>
+                </div>,
                 document.body,
               )}
           </>

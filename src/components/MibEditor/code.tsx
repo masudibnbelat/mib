@@ -97,8 +97,7 @@ export const codeTheme = {
     "rounded-xl",
     "font-mono text-[13px]/[1.7]",
     "my-5",
-    "!pt-2 !pb-2 !pl-[3.5rem] !pr-5",
-    // ✅ Word wrap always on
+    "!pt-2 !pb-2 !pl-2 !pr-5",
     "whitespace-pre-wrap",
     "break-all",
     "overflow-x-hidden",
@@ -464,103 +463,6 @@ export const LanguageDropdown = memo(function LanguageDropdown({
    LINE NUMBERS OVERLAY
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
-function CodeLineNumbers({ codeDom }: { codeDom: HTMLElement }) {
-  const [lineCount, setLineCount] = useState(1);
-  const [position, setPosition] = useState<{
-    top: number;
-    left: number;
-    height: number;
-    paddingTop: number;
-    visible: boolean;
-  }>({ top: 0, left: 0, height: 0, paddingTop: 0, visible: false });
-
-  useEffect(() => {
-    const countLines = () => {
-      const brCount = codeDom.querySelectorAll(":scope > br").length;
-      const text = codeDom.textContent || "";
-      const nlCount = (text.match(/\n/g) || []).length;
-      setLineCount(Math.max(brCount + 1, nlCount + 1, 1));
-    };
-
-    countLines();
-
-    const mo = new MutationObserver(countLines);
-    mo.observe(codeDom, {
-      childList: true,
-      subtree: true,
-      characterData: true,
-    });
-    return () => mo.disconnect();
-  }, [codeDom]);
-
-  useEffect(() => {
-    let rafId: number | null = null;
-
-    const update = () => {
-      if (rafId !== null) cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => {
-        const rect = codeDom.getBoundingClientRect();
-        const style = window.getComputedStyle(codeDom);
-        const paddingTop = parseFloat(style.paddingTop) || 0;
-        const paddingBottom = parseFloat(style.paddingBottom) || 0;
-        const visible =
-          rect.bottom > 0 && rect.top < window.innerHeight && rect.width > 0;
-
-        setPosition({
-          top: rect.top,
-          left: rect.left,
-          height: rect.height - paddingBottom,
-          paddingTop,
-          visible,
-        });
-      });
-    };
-
-    update();
-
-    const ro = new ResizeObserver(update);
-    ro.observe(codeDom);
-    ro.observe(document.body);
-    window.addEventListener("scroll", update, true);
-    window.addEventListener("resize", update);
-
-    return () => {
-      if (rafId !== null) cancelAnimationFrame(rafId);
-      ro.disconnect();
-      window.removeEventListener("scroll", update, true);
-      window.removeEventListener("resize", update);
-    };
-  }, [codeDom]);
-
-  if (!position.visible) return null;
-
-  return createPortal(
-    <div
-      aria-hidden="true"
-      contentEditable={false}
-      style={{
-        position: "fixed",
-        top: position.top,
-        left: position.left,
-        height: position.height,
-        width: "2.75rem",
-        paddingTop: position.paddingTop,
-        zIndex: 99997,
-        pointerEvents: "none",
-        userSelect: "none",
-      }}
-      className="font-mono text-[13px]/[1.7] text-(--color-gray)/40 text-right pr-3 overflow-hidden"
-    >
-      {Array.from({ length: lineCount }, (_, i) => (
-        <div key={i} className="leading-[1.7]">
-          {i + 1}
-        </div>
-      ))}
-    </div>,
-    document.body,
-  );
-}
-
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    FLOATING COPY BUTTON
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
@@ -749,7 +651,6 @@ export function CodeActionMenuPlugin() {
     <>
       {Array.from(codeBlocks.entries()).map(([key, dom]) => (
         <span key={key}>
-          <CodeLineNumbers codeDom={dom} />
           <CodeCopyButton codeDom={dom} />
         </span>
       ))}
