@@ -1,3 +1,5 @@
+// src/providers/ArticleContent.tsx
+
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
@@ -18,7 +20,6 @@ export function ArticleContent({
     if (!root) return;
 
     // ═══ CODE BLOCKS ═══
-    // Lexical code → <code class="mib-code-block">
     root
       .querySelectorAll<HTMLElement>("code.mib-code-block")
       .forEach((codeEl) => {
@@ -27,9 +28,10 @@ export function ArticleContent({
         const lang =
           codeEl.getAttribute("data-highlight-language") ||
           codeEl.getAttribute("data-language") ||
+          codeEl.getAttribute("data-gutter") ||
+          detectLanguageFromClasses(codeEl) ||
           "Code";
 
-        // wrapper
         const wrap = document.createElement("div");
         wrap.setAttribute("data-code-wrapper", "true");
         wrap.className =
@@ -37,34 +39,38 @@ export function ArticleContent({
         codeEl.parentNode?.insertBefore(wrap, codeEl);
         wrap.appendChild(codeEl);
 
-        // header
         const header = document.createElement("div");
         header.className =
           "flex items-center justify-between px-4 py-2.5 bg-[#1a1a2e] border-b border-violet-500/15 select-none";
 
-        // lang badge
         const badge = document.createElement("span");
         badge.className =
           "text-[11px] font-mono font-semibold uppercase tracking-[0.15em] text-violet-400/70";
         badge.textContent = lang;
 
-        // copy btn
-        const copyBtn = createCopyButton(() => codeEl.textContent || "");
+        const copyBtn = createCopyButton(() => extractCodeText(codeEl));
 
         header.appendChild(badge);
         header.appendChild(copyBtn);
         wrap.insertBefore(header, codeEl);
 
-        // remove top radius from code
         codeEl.style.borderTopLeftRadius = "0";
         codeEl.style.borderTopRightRadius = "0";
         codeEl.style.marginTop = "0";
         codeEl.style.borderTop = "none";
       });
 
-    // fallback: <pre> blocks
+    // fallback: <pre> blocks (not already wrapped)
     root.querySelectorAll<HTMLElement>("pre").forEach((pre) => {
       if (pre.closest("[data-code-wrapper]")) return;
+
+      const codeChild = pre.querySelector("code");
+      const lang = codeChild
+        ? codeChild.getAttribute("data-highlight-language") ||
+          codeChild.getAttribute("data-language") ||
+          detectLanguageFromClasses(codeChild) ||
+          "Code"
+        : "Code";
 
       const wrap = document.createElement("div");
       wrap.setAttribute("data-code-wrapper", "true");
@@ -80,11 +86,9 @@ export function ArticleContent({
       const badge = document.createElement("span");
       badge.className =
         "text-[11px] font-mono font-semibold uppercase tracking-[0.15em] text-violet-400/70";
-      badge.textContent = "Code";
+      badge.textContent = lang;
 
-      const copyBtn = createCopyButton(
-        () => (pre.querySelector("code") || pre).textContent || "",
-      );
+      const copyBtn = createCopyButton(() => extractCodeText(codeChild || pre));
 
       header.appendChild(badge);
       header.appendChild(copyBtn);
@@ -110,35 +114,131 @@ export function ArticleContent({
       const text = blockquote.textContent || "";
       const author = cite?.textContent?.replace(/^—\s*/, "") || "";
 
-      // clear original
+      // clear & rebuild
       el.innerHTML = "";
-
-      // rebuild
       el.className =
-        "my-6 mx-auto max-w-2xl rounded-2xl border border-(--color-active-border) overflow-hidden";
+        "my-6 mx-auto max-w-2xl rounded-2xl border border-[var(--color-active-border)] overflow-hidden";
+      el.style.cssText = ""; // clear inline styles from exportDOM
 
       const inner = document.createElement("div");
       inner.innerHTML = buildStyledQuoteHTML(style, text, author);
       el.appendChild(inner);
     });
 
-    // ═══ POLL ═══
+    // ═══ ALSO CATCH: blockquote[data-style] (direct from exportDOM) ═══
+    root
+      .querySelectorAll<HTMLElement>("blockquote[data-style]")
+      .forEach((bq) => {
+        // If parent is already data-styled-quote, skip
+        if (bq.closest("[data-styled-quote]")) return;
+        if (bq.getAttribute("data-styled-rendered")) return;
+        bq.setAttribute("data-styled-rendered", "true");
+
+        const style = bq.getAttribute("data-style") || "elegant";
+        const text = bq.textContent || "";
+        const cite = bq.parentElement?.querySelector("cite");
+        const author = cite?.textContent?.replace(/^—\s*/, "") || "";
+
+        // Wrap in a styled container
+        const wrapper = document.createElement("div");
+        wrapper.className =
+          "my-6 mx-auto max-w-2xl rounded-2xl border border-[var(--color-active-border)] overflow-hidden";
+
+        const inner = document.createElement("div");
+        inner.innerHTML = buildStyledQuoteHTML(style, text, author);
+
+        wrapper.appendChild(inner);
+
+        // Replace the blockquote (and cite if sibling)
+        const parent = bq.parentElement;
+        if (parent && cite) {
+          parent.insertBefore(wrapper, bq);
+          bq.remove();
+          cite.remove();
+        } else {
+          bq.parentNode?.insertBefore(wrapper, bq);
+          bq.remove();
+        }
+      });
+
+    // ═══ POLL (read-only) ═══
     root.querySelectorAll<HTMLElement>("[data-poll]").forEach((el) => {
       if (el.getAttribute("data-poll-rendered")) return;
       el.setAttribute("data-poll-rendered", "true");
+
+      // Extract question and options from the existing DOM
+      const titleEl = el.querySelector("h4");
+      const listItems = el.querySelectorAll("li");
+
+      const question = titleEl?.textContent?.replace(/^📊\s*/, "") || "Poll";
+      const options: string[] = [];
+      listItems.forEach((li) => {
+        if (li.textContent?.trim()) options.push(li.textContent.trim());
+      });
+
+      // Rebuild with nice read-only UI
+      el.innerHTML = "";
       el.className =
-        "my-6 rounded-2xl border border-(--color-active-border) bg-(--color-bg) overflow-hidden shadow-md";
+        "my-6 rounded-2xl border border-[var(--color-active-border)] overflow-hidden shadow-md";
+      el.style.cssText = ""; // clear exportDOM inline styles
+
+      el.innerHTML = buildPollHTML(question, options);
     });
 
     // ═══ COLUMNS ═══
     root.querySelectorAll<HTMLElement>("[data-columns]").forEach((el) => {
       if (el.getAttribute("data-cols-rendered")) return;
       el.setAttribute("data-cols-rendered", "true");
-      el.className += " my-6 gap-4";
 
-      el.querySelectorAll<HTMLElement>(":scope > div").forEach((col) => {
-        col.className =
-          "p-4 rounded-xl border border-(--color-active-border) bg-(--color-active-bg)/30";
+      const columns = el.querySelectorAll<HTMLElement>(":scope > div");
+      const colCount = columns.length || 2;
+
+      // Reset styles properly
+      el.style.cssText = `display:grid;grid-template-columns:repeat(${colCount},1fr);gap:1rem;margin:1.5rem 0;`;
+      el.className = ""; // remove old classes
+
+      columns.forEach((col, i) => {
+        col.className = "";
+        col.style.cssText =
+          "padding:1rem;border-radius:0.75rem;border:1px solid var(--color-active-border);background:var(--color-active-bg);";
+
+        // Add column number indicator
+        if (!col.querySelector("[data-col-num]")) {
+          const num = document.createElement("div");
+          num.setAttribute("data-col-num", "true");
+          num.style.cssText =
+            "font-size:0.625rem;font-weight:600;color:var(--color-gray);margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:0.1em;opacity:0.5;";
+          num.textContent = `Column ${i + 1}`;
+          col.insertBefore(num, col.firstChild);
+        }
+      });
+    });
+
+    // ═══ TABLES (ensure proper styling) ═══
+    root.querySelectorAll<HTMLTableElement>("table").forEach((table) => {
+      if (table.getAttribute("data-table-rendered")) return;
+      table.setAttribute("data-table-rendered", "true");
+
+      // Wrap in scrollable container if not already
+      if (!table.parentElement?.classList.contains("table-scroll-wrapper")) {
+        const wrapper = document.createElement("div");
+        wrapper.className =
+          "table-scroll-wrapper overflow-x-auto my-4 rounded-xl border border-[var(--color-active-border)]";
+        table.parentNode?.insertBefore(wrapper, table);
+        wrapper.appendChild(table);
+      }
+
+      table.style.cssText =
+        "width:100%;border-collapse:collapse;font-size:0.875rem;";
+
+      table.querySelectorAll("th").forEach((th) => {
+        th.style.cssText =
+          "padding:0.625rem 0.875rem;border:1px solid var(--color-active-border);font-weight:600;background:var(--color-active-bg);text-align:left;";
+      });
+
+      table.querySelectorAll("td").forEach((td) => {
+        td.style.cssText =
+          "padding:0.625rem 0.875rem;border:1px solid var(--color-active-border);";
       });
     });
   }, [content]);
@@ -150,7 +250,7 @@ export function ArticleContent({
         "max-w-none text-(--color-text)",
 
         // paragraph
-        "[&_p]:mb-3 [&_p]:leading-7 [&_p]:break-words",
+        "[&_p]:mb-3 [&_p]:leading-7 [&_p]:wrap-break-word",
 
         // headings
         "[&_h1]:text-3xl [&_h1]:font-extrabold [&_h1]:leading-tight [&_h1]:mt-8 [&_h1]:mb-4",
@@ -159,7 +259,7 @@ export function ArticleContent({
         "[&_h4]:text-lg [&_h4]:font-semibold [&_h4]:mt-5 [&_h4]:mb-2",
         "[&_h5]:text-base [&_h5]:font-semibold [&_h5]:mt-4 [&_h5]:mb-2",
         "[&_h6]:text-sm [&_h6]:font-semibold [&_h6]:uppercase [&_h6]:tracking-wide [&_h6]:mt-4 [&_h6]:mb-2",
-        "[&>:first-child]:mt-0",
+        "first:*:mt-0",
 
         // text format
         "[&_strong]:font-bold [&_b]:font-bold",
@@ -178,18 +278,24 @@ export function ArticleContent({
         "[&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-3 [&_ol]:space-y-1.5",
         "[&_li]:leading-7",
 
-        // blockquote
-        "[&_blockquote:not([data-style])]:my-4 [&_blockquote:not([data-style])]:border-l-4",
-        "[&_blockquote:not([data-style])]:border-violet-500 [&_blockquote:not([data-style])]:pl-4",
-        "[&_blockquote:not([data-style])]:italic [&_blockquote:not([data-style])]:text-(--color-gray)",
+        // blockquote (only non-styled ones)
+        "[&_blockquote:not([data-style]):not([data-styled-rendered])]:my-4",
+        "[&_blockquote:not([data-style]):not([data-styled-rendered])]:border-l-4",
+        "[&_blockquote:not([data-style]):not([data-styled-rendered])]:border-violet-500",
+        "[&_blockquote:not([data-style]):not([data-styled-rendered])]:pl-4",
+        "[&_blockquote:not([data-style]):not([data-styled-rendered])]:italic",
+        "[&_blockquote:not([data-style]):not([data-styled-rendered])]:text-(--color-gray)",
 
-        // inline code (not mib-code-block, not inside pre)
+        // inline code
         "[&_:not(pre)>code:not(.mib-code-block)]:bg-violet-500/15",
         "[&_:not(pre)>code:not(.mib-code-block)]:text-violet-300",
-        "[&_:not(pre)>code:not(.mib-code-block)]:border [&_:not(pre)>code:not(.mib-code-block)]:border-violet-500/20",
+        "[&_:not(pre)>code:not(.mib-code-block)]:border",
+        "[&_:not(pre)>code:not(.mib-code-block)]:border-violet-500/20",
         "[&_:not(pre)>code:not(.mib-code-block)]:rounded-md",
-        "[&_:not(pre)>code:not(.mib-code-block)]:px-1.5 [&_:not(pre)>code:not(.mib-code-block)]:py-0.5",
-        "[&_:not(pre)>code:not(.mib-code-block)]:font-mono [&_:not(pre)>code:not(.mib-code-block)]:text-[0.875em]",
+        "[&_:not(pre)>code:not(.mib-code-block)]:px-1.5",
+        "[&_:not(pre)>code:not(.mib-code-block)]:py-0.5",
+        "[&_:not(pre)>code:not(.mib-code-block)]:font-mono",
+        "[&_:not(pre)>code:not(.mib-code-block)]:text-[0.875em]",
 
         // mib-code-block
         "[&_.mib-code-block]:block [&_.mib-code-block]:relative",
@@ -198,7 +304,7 @@ export function ArticleContent({
         "[&_.mib-code-block]:rounded-b-xl",
         "[&_.mib-code-block]:font-mono [&_.mib-code-block]:text-[13px] [&_.mib-code-block]:leading-7",
         "[&_.mib-code-block]:p-4 [&_.mib-code-block]:pl-5",
-        "[&_.mib-code-block]:whitespace-pre-wrap [&_.mib-code-block]:break-words",
+        "[&_.mib-code-block]:whitespace-pre-wrap [&_.mib-code-block]:wrap-break-word",
         "[&_.mib-code-block]:overflow-x-auto",
 
         // pre fallback
@@ -206,10 +312,10 @@ export function ArticleContent({
         "[&_pre_code]:block [&_pre_code]:p-4",
         "[&_pre_code]:font-mono [&_pre_code]:text-[13px] [&_pre_code]:leading-7",
         "[&_pre_code]:text-gray-200",
-        "[&_pre_code]:whitespace-pre-wrap [&_pre_code]:break-words",
+        "[&_pre_code]:whitespace-pre-wrap [&_pre_code]:wrap-break-word",
         "[&_pre_code]:bg-transparent [&_pre_code]:border-none",
 
-        // syntax tokens
+        // syntax highlight tokens
         "[&_.token.comment]:text-[#7f848e] [&_.token.comment]:italic",
         "[&_.token.keyword]:text-[#c678dd]",
         "[&_.token.function]:text-[#61afef]",
@@ -238,19 +344,6 @@ export function ArticleContent({
         "[&_.token.prolog]:text-[#7f848e]",
         "[&_.token.cdata]:text-[#7f848e]",
 
-        // table
-        "[&_table]:w-full [&_table]:border-collapse [&_table]:my-4",
-        "[&_table]:overflow-x-auto [&_table]:block",
-        "[&_th]:border [&_th]:border-(--color-active-border) [&_th]:px-3 [&_th]:py-2",
-        "[&_th]:font-semibold [&_th]:bg-(--color-active-bg) [&_th]:text-left",
-        "[&_td]:border [&_td]:border-(--color-active-border) [&_td]:px-3 [&_td]:py-2",
-        "[&_.mib-table]:w-full [&_.mib-table]:border-collapse",
-        "[&_.mib-table-cell]:border [&_.mib-table-cell]:border-(--color-active-border)",
-        "[&_.mib-table-cell]:px-3 [&_.mib-table-cell]:py-2",
-        "[&_.mib-table-cell-header]:border [&_.mib-table-cell-header]:border-(--color-active-border)",
-        "[&_.mib-table-cell-header]:px-3 [&_.mib-table-cell-header]:py-2",
-        "[&_.mib-table-cell-header]:font-semibold [&_.mib-table-cell-header]:bg-(--color-active-bg)",
-
         // hr
         "[&_hr]:my-6 [&_hr]:border-0 [&_hr]:border-t [&_hr]:border-(--color-active-border)",
 
@@ -262,6 +355,36 @@ export function ArticleContent({
       dangerouslySetInnerHTML={{ __html: content }}
     />
   );
+}
+
+// ═══ HELPER: Detect language from CSS classes ═══
+function detectLanguageFromClasses(el: Element): string | null {
+  const classes = Array.from(el.classList);
+  for (const cls of classes) {
+    // Common patterns: language-javascript, lang-python, etc.
+    const match = cls.match(/^(?:language|lang)-(.+)$/);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+// ═══ HELPER: Extract clean code text ═══
+function extractCodeText(root: HTMLElement): string {
+  let result = "";
+  const walk = (node: Node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      result += node.textContent || "";
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      const el = node as HTMLElement;
+      if (el.tagName.toLowerCase() === "br") {
+        result += "\n";
+      } else {
+        for (const child of Array.from(el.childNodes)) walk(child);
+      }
+    }
+  };
+  for (const child of Array.from(root.childNodes)) walk(child);
+  return result;
 }
 
 // ═══ HELPER: Copy Button Creator ═══
@@ -284,11 +407,54 @@ function createCopyButton(getText: () => string): HTMLButtonElement {
         btn.innerHTML = `${COPY_SVG}<span>Copy code</span>`;
       }, 2000);
     } catch {
-      // silent
+      // fallback
+      const ta = document.createElement("textarea");
+      ta.value = getText();
+      ta.style.cssText = "position:fixed;opacity:0;pointer-events:none";
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand("copy");
+        btn.innerHTML = `<span class="text-green-400">${CHECK_SVG}</span><span class="text-green-400">Copied!</span>`;
+        setTimeout(() => {
+          btn.innerHTML = `${COPY_SVG}<span>Copy code</span>`;
+        }, 2000);
+      } catch {
+        /* silent */
+      }
+      document.body.removeChild(ta);
     }
   });
 
   return btn;
+}
+
+// ═══ HELPER: Build Poll HTML (read-only) ═══
+function buildPollHTML(question: string, options: string[]): string {
+  const optionsHTML = options
+    .map(
+      (opt, i) => `
+    <div style="padding:0.625rem 0.875rem;border:1px solid var(--color-active-border);border-radius:0.75rem;font-size:0.875rem;color:var(--color-text);display:flex;align-items:center;gap:0.625rem;">
+      <span style="width:1.25rem;height:1.25rem;border-radius:50%;border:2px solid var(--color-active-border);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.625rem;color:var(--color-gray);">${i + 1}</span>
+      <span>${opt}</span>
+    </div>`,
+    )
+    .join("");
+
+  return `
+    <div style="padding:0.625rem 1rem;background:rgba(16,185,129,0.06);border-bottom:1px solid var(--color-active-border);display:flex;align-items:center;gap:0.5rem;">
+      <span style="font-size:0.6875rem;font-weight:600;color:#34d399;text-transform:uppercase;letter-spacing:0.08em;">📊 Poll</span>
+    </div>
+    <div style="padding:1rem;">
+      <h4 style="font-weight:600;margin-bottom:0.875rem;font-size:0.9375rem;color:var(--color-text);">${question}</h4>
+      <div style="display:flex;flex-direction:column;gap:0.5rem;">
+        ${optionsHTML}
+      </div>
+      <div style="margin-top:0.75rem;font-size:0.6875rem;color:var(--color-gray);display:flex;align-items:center;gap:0.375rem;">
+        <span>🗳️</span>
+        <span>Poll — view only</span>
+      </div>
+    </div>`;
 }
 
 // ═══ HELPER: Build Styled Quote HTML ═══
@@ -297,8 +463,18 @@ function buildStyledQuoteHTML(
   text: string,
   author: string,
 ): string {
-  const authorHTML = author
-    ? `<div style="margin-top:0.75rem;font-size:0.875rem;opacity:0.7;">— ${author}</div>`
+  const esc = (s: string) =>
+    s
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+
+  const safeText = esc(text);
+  const safeAuthor = esc(author);
+
+  const authorHTML = safeAuthor
+    ? `<div style="margin-top:0.75rem;font-size:0.875rem;opacity:0.7;">— ${safeAuthor}</div>`
     : "";
 
   switch (style) {
@@ -307,9 +483,9 @@ function buildStyledQuoteHTML(
         <div style="padding:1.5rem 2rem;position:relative;">
           <div style="position:absolute;top:0.5rem;left:0.75rem;font-size:3rem;line-height:1;color:rgba(139,92,246,0.15);font-family:Georgia,serif;">"</div>
           <blockquote style="position:relative;z-index:1;font-style:italic;font-family:Georgia,serif;font-size:1.125rem;line-height:1.75;color:var(--color-text);">
-            "${text}"
+            "${safeText}"
           </blockquote>
-          ${author ? `<div style="margin-top:1rem;display:flex;align-items:center;gap:0.5rem;"><div style="width:2rem;height:1px;background:rgba(139,92,246,0.4);"></div><span style="font-size:0.875rem;color:#a78bfa;font-weight:500;">${author}</span></div>` : ""}
+          ${safeAuthor ? `<div style="margin-top:1rem;display:flex;align-items:center;gap:0.5rem;"><div style="width:2rem;height:1px;background:rgba(139,92,246,0.4);"></div><span style="font-size:0.875rem;color:#a78bfa;font-weight:500;">${safeAuthor}</span></div>` : ""}
         </div>`;
 
     case "gradient":
@@ -317,23 +493,23 @@ function buildStyledQuoteHTML(
         <div style="position:relative;overflow:hidden;border-radius:0.75rem;">
           <div style="position:absolute;top:0;bottom:0;left:0;width:4px;background:linear-gradient(to bottom,#ec4899,#8b5cf6,#3b82f6);"></div>
           <div style="padding:1.25rem 1rem 1.25rem 1.5rem;">
-            <blockquote style="font-weight:500;line-height:1.75;color:var(--color-text);">${text}</blockquote>
-            ${author ? `<div style="margin-top:0.75rem;font-size:0.875rem;background:linear-gradient(to right,#ec4899,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:600;">— ${author}</div>` : ""}
+            <blockquote style="font-weight:500;line-height:1.75;color:var(--color-text);">${safeText}</blockquote>
+            ${safeAuthor ? `<div style="margin-top:0.75rem;font-size:0.875rem;background:linear-gradient(to right,#ec4899,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-weight:600;">— ${safeAuthor}</div>` : ""}
           </div>
         </div>`;
 
     case "brutalist":
       return `
         <div style="background:linear-gradient(135deg,rgba(249,115,22,0.08),rgba(239,68,68,0.04));border-left:4px solid #f97316;padding:1.5rem;">
-          <blockquote style="font-size:1.375rem;font-weight:800;line-height:1.3;text-transform:uppercase;letter-spacing:-0.02em;color:var(--color-text);">${text}</blockquote>
-          ${author ? `<div style="margin-top:1rem;font-size:0.75rem;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:0.1em;">— ${author}</div>` : ""}
+          <blockquote style="font-size:1.375rem;font-weight:800;line-height:1.3;text-transform:uppercase;letter-spacing:-0.02em;color:var(--color-text);">${safeText}</blockquote>
+          ${safeAuthor ? `<div style="margin-top:1rem;font-size:0.75rem;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:0.1em;">— ${safeAuthor}</div>` : ""}
         </div>`;
 
     case "literary":
       return `
         <div style="border-top:1px solid var(--color-active-border);border-bottom:1px solid var(--color-active-border);padding:2rem 1.5rem;text-align:center;">
-          <blockquote style="font-style:italic;font-family:Georgia,serif;line-height:2;color:var(--color-text);max-width:28rem;margin:0 auto;opacity:0.9;">${text}</blockquote>
-          ${author ? `<div style="margin-top:1.25rem;"><span style="display:inline-block;padding:0.25rem 1rem;border-radius:9999px;background:rgba(16,185,129,0.1);font-size:0.75rem;font-weight:600;color:#34d399;text-transform:uppercase;letter-spacing:0.05em;">${author}</span></div>` : ""}
+          <blockquote style="font-style:italic;font-family:Georgia,serif;line-height:2;color:var(--color-text);max-width:28rem;margin:0 auto;opacity:0.9;">${safeText}</blockquote>
+          ${safeAuthor ? `<div style="margin-top:1.25rem;"><span style="display:inline-block;padding:0.25rem 1rem;border-radius:9999px;background:rgba(16,185,129,0.1);font-size:0.75rem;font-weight:600;color:#34d399;text-transform:uppercase;letter-spacing:0.05em;">${safeAuthor}</span></div>` : ""}
         </div>`;
 
     case "callout":
@@ -342,8 +518,8 @@ function buildStyledQuoteHTML(
           <div style="display:flex;gap:0.75rem;">
             <div style="flex-shrink:0;width:2rem;height:2rem;border-radius:0.5rem;background:rgba(59,130,246,0.15);display:flex;align-items:center;justify-content:center;font-size:1rem;">📢</div>
             <div>
-              <blockquote style="font-size:0.875rem;font-weight:500;line-height:1.75;color:var(--color-text);">${text}</blockquote>
-              ${author ? `<div style="margin-top:0.5rem;font-size:0.75rem;color:rgba(96,165,250,0.8);font-weight:500;">— ${author}</div>` : ""}
+              <blockquote style="font-size:0.875rem;font-weight:500;line-height:1.75;color:var(--color-text);">${safeText}</blockquote>
+              ${safeAuthor ? `<div style="margin-top:0.5rem;font-size:0.75rem;color:rgba(96,165,250,0.8);font-weight:500;">— ${safeAuthor}</div>` : ""}
             </div>
           </div>
         </div>`;
@@ -351,14 +527,14 @@ function buildStyledQuoteHTML(
     case "whisper":
       return `
         <div style="padding:1rem 1.5rem;text-align:center;">
-          <blockquote style="font-size:0.875rem;font-style:italic;line-height:1.75;color:var(--color-text);opacity:0.45;">${text}</blockquote>
-          ${author ? `<div style="margin-top:0.5rem;font-size:0.75rem;color:var(--color-text);opacity:0.3;">— ${author}</div>` : ""}
+          <blockquote style="font-size:0.875rem;font-style:italic;line-height:1.75;color:var(--color-text);opacity:0.45;">${safeText}</blockquote>
+          ${safeAuthor ? `<div style="margin-top:0.5rem;font-size:0.75rem;color:var(--color-text);opacity:0.3;">— ${safeAuthor}</div>` : ""}
         </div>`;
 
     default:
       return `
         <div style="border-left:4px solid #8b5cf6;padding:1rem 1.25rem;">
-          <blockquote style="font-style:italic;color:var(--color-text);">${text}</blockquote>
+          <blockquote style="font-style:italic;color:var(--color-text);">${safeText}</blockquote>
           ${authorHTML}
         </div>`;
   }
